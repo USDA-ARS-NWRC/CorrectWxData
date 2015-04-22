@@ -21,7 +21,7 @@ setdbprefs('DataReturnFormat','structure');
 
 % Query parameters
 vars = {'snow_water_equiv'};
-sta = {'TRMI1','ATAI1','MRKI1','VNNI1','PRAI1','CCDI1','SRSI1'};
+sta = {'MRKLI','TR216','SVT'};
 dateFrom = '2013-10-01 00:00:00';
 dateTo = '2014-09-30 23:00:00';
 location = 'BRB';
