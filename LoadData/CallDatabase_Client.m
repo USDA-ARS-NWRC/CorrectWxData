@@ -21,24 +21,22 @@ setdbprefs('DataReturnFormat','structure');
 
 % Query parameters
 vars = {'air_temp'};
-% vars = {'solar_radiation'};
-% vars = {'relative_humidity'};
-% vars = {'wind_speed'};
+sta = {'BNRI1','TR216','SVT'};
 dateFrom = '2008-10-01 00:00:00';
-dateTo = '2009-07-31 00:00:00';
+dateTo = '2008-12-31 00:00:00';
 location = 'BRB';
 
 % prepare the statement DO NOT CHANGE
+v = strcat('fixed.',vars);
 qry = sprintf(['SELECT fixed.station_id,fixed.date_time,%s FROM fixed '...
     'INNER JOIN stations on fixed.station_id=stations.station_id '...
-    'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND fixed.station_id=''GGSI1'' AND '...
+    'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND '...
     'stations.client=''%s'''],...
     strjoin(vars,','), dateFrom, dateTo, location);
 
 % 'fixed.station_id IN (''%s'')'
 
-curs = exec(c,qry);    
-v = strcat('fixed.',vars);
+curs = exec(c,qry);
 curs = fetch(curs);
 data = curs.Data;
 

@@ -46,10 +46,14 @@ if get(handles.noSmoothingRadio,'Value') == 0
         
         
         if handles.smoothn.RobustValue == 1
-            data = smoothn(data,'robust',options);
+            for s = 1:size(data,2) 
+                data(:,s) = smoothn(data(:,s),'robust',options);
+            end
             
         elseif ~isnan(handles.smoothn.smoothingParameterValue)
-            data = smoothn(data,handles.smoothn.smoothingParameterValue,options);
+            for s = 1:size(data,2) 
+                data(:,s) = smoothn(data(:,s),handles.smoothn.smoothingParameterValue,options);
+            end
             
         else
             data = smoothn(data,options);
