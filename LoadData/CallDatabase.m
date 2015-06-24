@@ -20,22 +20,39 @@ setdbprefs('DataReturnFormat','structure');
 
 
 % Query parameters
-vars = {'snow_water_equiv'};
-sta = {'TRMI1','ATAI1','MRKI1','VNNI1','PRAI1','CCDI1','SRSI1'};
-dateFrom = '2013-10-01 00:00:00';
-dateTo = '2014-09-30 23:00:00';
+vars = {'air_temp'};
+% vars = {'solar_radiation'};
+% vars = {'relative_humidity'};
+% vars = {'wind_speed'};
+dateFrom = '2008-10-01 00:00:00';
+dateTo = '2009-07-31 00:00:00';
 location = 'BRB';
 
 % prepare the statement DO NOT CHANGE
-v = strcat('fixed.',vars);
-qry = sprintf(['SELECT station_id,date_time,%s FROM fixed '...
-    'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND '...
-    'station_id IN (''%s'')'],...
-    strjoin(vars,','), dateFrom, dateTo, strjoin(sta,''','''));
+qry = sprintf(['SELECT fixed.station_id,fixed.date_time,%s FROM fixed '...
+    'INNER JOIN stations on fixed.station_id=stations.station_id '...
+    'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND fixed.station_id=''GGSI1'' AND '...
+    'stations.client=''%s'''],...
+    strjoin(vars,','), dateFrom, dateTo, location);
 
-curs = exec(c,qry);
+% 'fixed.station_id IN (''%s'')'
+
+curs = exec(c,qry);    
+v = strcat('fixed.',vars);
 curs = fetch(curs);
 data = curs.Data;
 
+% here you can perform some prior calculations to the data before loading
+% into the program.  For example, break wind dir down into components
+% wd = data.wind_direction;
+% ws = data.wind_speed;
+% ws_u = ws.*sind(wd);
+% ws_v = ws.*cosd(wd);
+% 
+% data.wind_u = ws_u;
+% data.wind_v = ws_v;
+
+% add to the variable
+% vars = [vars 'wind_u' 'wind_v'];
 
 close(curs); close(c);

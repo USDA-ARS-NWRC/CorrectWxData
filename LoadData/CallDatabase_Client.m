@@ -22,8 +22,8 @@ setdbprefs('DataReturnFormat','structure');
 % Query parameters
 vars = {'air_temp'};
 sta = {'BNRI1','TR216','SVT'};
-dateFrom = '2007-10-01 00:00:00';
-dateTo = '2007-12-31 00:00:00';
+dateFrom = '2008-10-01 00:00:00';
+dateTo = '2008-12-31 00:00:00';
 location = 'BRB';
 
 % prepare the statement DO NOT CHANGE
