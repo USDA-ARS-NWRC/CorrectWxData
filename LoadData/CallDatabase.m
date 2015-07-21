@@ -20,7 +20,7 @@ setdbprefs('DataReturnFormat','structure');
 
 
 % Query parameters
-vars = {'air_temp'};
+vars = {'snow_water_equiv'};
 % vars = {'solar_radiation'};
 % vars = {'relative_humidity'};
 % vars = {'wind_speed'};
@@ -31,7 +31,7 @@ location = 'BRB';
 % prepare the statement DO NOT CHANGE
 qry = sprintf(['SELECT fixed.station_id,fixed.date_time,%s FROM fixed '...
     'INNER JOIN stations on fixed.station_id=stations.station_id '...
-    'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND fixed.station_id=''GGSI1'' AND '...
+    'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND '...
     'stations.client=''%s'''],...
     strjoin(vars,','), dateFrom, dateTo, location);
 
