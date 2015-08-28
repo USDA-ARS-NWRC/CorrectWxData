@@ -129,21 +129,50 @@ nvars = length(vars);
 % create a matrix to store the results
 results = NaN(nTimes,nsta,nvars);
 
-for n = 1:length(data.station_id)
-    
-    % get the time index
-    tind = strcmp(data.date_time(n),dtimes);
-    
-    % get the station index
-    sind = strcmp(data.station_id(n),stations);
-    
-    % insert the variables
-    for k = 1:nvars
+for k = 1:nvars
+    for n = 1:length(stations)
         
-        results(tind,sind,k) = data.(vars{k})(n);
+        % station index
+        sind = ismember(data.station_id, stations{n});
         
+        % the data
+        d = data.(vars{k})(sind);
+        
+        % if all NaN's don't do anything
+        if sum(isnan(d)) ~= sum(sind)
+            
+            % the times
+            dt = data.date_time(sind);
+            [C,ia,ic] = unique(dt);
+            d = d(ia);
+            
+            
+            % time index
+            tind = find(ismember(dtimes, C));
+            
+            results(tind,n,k) = d;
+        end
     end
-    
 end
+
+
+
+
+% for n = 1:length(data.station_id)
+%     
+%     % get the time index
+%     tind = strcmp(data.date_time(n),dtimes);
+%     
+%     % get the station index
+%     sind = strcmp(data.station_id(n),stations);
+%     
+%     % insert the variables
+%     for k = 1:nvars
+%         
+%         results(tind,sind,k) = data.(vars{k})(n);
+%         
+%     end
+%     
+% end
 
 dtimes = datenum(dtimes);
