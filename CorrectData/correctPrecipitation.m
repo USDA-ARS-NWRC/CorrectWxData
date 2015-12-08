@@ -95,8 +95,12 @@ for m = 1:M
             
             % Look for the next good precip value
             n = i + 1;
-            while CumPPT(n,m) == noData(m) || CumPPT(n,m) < 0
-                n = n + 1;
+            if i == N
+                n = i;
+            else
+                while CumPPT(n,m) == noData(m) || CumPPT(n,m) < 0
+                    n = n + 1;
+                end
             end
             
             if CumPPT(p,m) - CumPPT(n,m) > bucketDump(m)
@@ -129,7 +133,7 @@ for m = 1:M
             while flag
                 d = CumPPT(i-1,m) - CumPPT(n,m);        % difference from current
                 consDiff = CumPPT(n:n+nSucc-1,m) - CumPPT(n+1:n+1+nSucc-1,m); % difference for the next 5 measurements
-
+                
                 if sum(abs(consDiff) <= noise(m)) == nSucc || n+nSucc == N
                     flag = 0;
                 end
