@@ -6,7 +6,7 @@ function [station_ind,variable_ind] = getStationVariables(handles)
 station_ind = get(handles.StationList,'Value');
 
 % VariableMenu to save
-variable_ind = get(handles.VariableMenu,'Value');
+variable_ind = get(handles.variableList,'Value');
 
 % correct the station list
 sind = find(handles.StationVariables(variable_ind,:));

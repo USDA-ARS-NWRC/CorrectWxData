@@ -22,16 +22,16 @@ function varargout = CorrectWxData(varargin)
 
 % Edit the above text to modify the response to help CorrectWxData
 
-% Last Modified by GUIDE v2.5 23-Mar-2015 09:34:49
+% Last Modified by GUIDE v2.5 09-Dec-2015 08:50:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @CorrectWxData_OpeningFcn, ...
-                   'gui_OutputFcn',  @CorrectWxData_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @CorrectWxData_OpeningFcn, ...
+    'gui_OutputFcn',  @CorrectWxData_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -51,6 +51,44 @@ function CorrectWxData_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to CorrectWxData (see VARARGIN)
+
+if isempty(varargin)
+    error('Must specifiy configuration file!')
+end
+
+% parse the configuration file
+ini = IniConfig();
+ini.ReadFile(varargin{1});
+sections = ini.GetSections();
+config = struct('dem',[],'database',[],'date_range',[],'variables',[],'stations',[]);
+
+for n = 1:length(sections)
+    
+    [keys, count_keys] = ini.GetKeys(sections{n});
+    values = ini.GetValues(sections{n}, keys);
+    
+    for k = 1:count_keys
+        if ~isempty(values{k})
+            config.(sections{n}(2:end-1)).(keys{k}) = strtrim(values{k});
+        end
+    end
+end
+
+% load the variables
+handles.variables = strtrim(regexp(config.variables.var, ',', 'split'));
+set(handles.variableList, 'String', handles.variables)
+
+% load the dem
+if isfield(config.dem,'fileName')
+    d = readASCII(config.dem.fileName, ' ', 6);
+    d.y = fliplr(d.y);
+    fieldNames = fieldnames(d);
+    for i = 1:size(fieldNames,1)
+        config.dem.(fieldNames{i}) = d.(fieldNames{i});
+    end
+end
+
+handles.config = config;
 
 % Choose default command line output for CorrectWxData
 handles.output = hObject;
@@ -77,15 +115,35 @@ handles.precip.noise = 2.5;
 handles.precip.noData = -6999;
 handles.precip.outputInterval = 'same';
 
+% plot the map
+if isfield(config.dem,'data')
+    imagesc(config.dem.x, config.dem.y, config.dem.data,...
+        'Parent', handles.mapAxes)
+    hold(handles.mapAxes, 'on')
+    axis(handles.mapAxes,'equal','tight')
+    set(handles.mapAxes,'XTickLabel',[],...
+        'YTickLabel',[],...
+        'YDir','normal')
+end
+handles.StationPlot = [];
+
+% plotPanel axes
+handles.plotAxes = [];
+
 % Update handles structure
 guidata(hObject, handles);
+
+% call the database
+if isfield(config,'database')
+    Menu_LoadData_Database_Callback(hObject, eventdata, handles)
+end
 
 % UIWAIT makes CorrectWxData wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = CorrectWxData_OutputFcn(hObject, eventdata, handles) 
+function varargout = CorrectWxData_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handles to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -95,14 +153,14 @@ function varargout = CorrectWxData_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on selection change in VariableMenu.
-function VariableMenu_Callback(hObject, eventdata, handles)
-% hObject    handles to VariableMenu (see GCBO)
+% --- Executes on selection change in variableList.
+function variableList_Callback(hObject, eventdata, handles)
+% hObject    handle to variableList (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns VariableMenu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from VariableMenu
+% Hints: contents = cellstr(get(hObject,'String')) returns variableList contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from variableList
 
 handles = guidata(hObject);
 
@@ -111,23 +169,28 @@ val = get(hObject,'Value');
 handles.variable_ind = val;
 
 % update the station list
+handles.StationList.Value = 1;
 StationList = createStationList(handles);
 set(handles.StationList,'String',StationList);
+
+% plot the stations on the map
+handles = UpdateMap(handles);
 
 guidata(hObject,handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function VariableMenu_CreateFcn(hObject, eventdata, handles)
-% hObject    handles to VariableMenu (see GCBO)
+function variableList_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to variableList (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: popupmenu controls usually have a white background on Windows.
+% Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
 
 
 % --- Executes on selection change in StationList.
@@ -139,6 +202,10 @@ function StationList_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns StationList contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from StationList
 
+% plot the stations on the map
+handles = UpdateMap(handles);
+
+guidata(hObject,handles);
 
 % --- Executes during object creation, after setting all properties.
 function StationList_CreateFcn(hObject, eventdata, handles)
@@ -159,6 +226,11 @@ function Menu_LoadData_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% --------------------------------------------------------------------
+function editDbParameters_Callback(hObject, eventdata, handles)
+% hObject    handle to editDbParameters (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 % --------------------------------------------------------------------
 function Menu_LoadData_Database_Callback(hObject, eventdata, handles)
@@ -168,50 +240,80 @@ function Menu_LoadData_Database_Callback(hObject, eventdata, handles)
 
 % Call the database access script that ouputs the query into a structure
 % named "data" and "vars" to the workspace
-CallDatabase;
+results = CallDatabase(handles);
 
-% now check the results
-if ~exist('data','var')
-    errordlg('No data output to workspace as variable "data"');
+if isstruct(results)
+    
+    % store the results in handles
+    handles.originalData = results;
+    handles.workingData = results;
+    handles.savedData = cell2struct(cell(size(fieldnames(results))),fieldnames(results),1);
+    
+    % get the stations that have data for each variables
+    ind = zeros(length(handles.variables),length(results));
+    for n = 1:length(handles.variables)
+        for k = 1:length(results)
+            ind(n,k) = sum(isnan(results(k).data.(handles.variables{n}))) ~= length(results(k).data.date_time);
+        end
+    end
+    handles.StationVariables = ind;
+    
+    handles.stations = {results.primary_id}';
+    
+    %%% load the stations into the list %%%
+    StationList = createStationList(handles);
+    set(handles.StationList,'String',StationList);
+    % set(handles.StationList,'Value',1)
+    % handles.station_ind = 1;
+    
+    % plot the stations on the map
+    handles = UpdateMap(handles);
+    
+    % save the data
+    guidata(hObject,handles);
+    
+    
+    
+    % plot the first station, first variable
+    %     UpdatePlot_Callback(handles.UpdatePlot,eventdata,handles);
+    
 end
 
-% store the results in handles
-handles.db_data = data;
-handles.vars = vars;
+function handles = UpdateMap(handles)
+% 20151209 Scott Havens
+%
+% Plot the stations on the map
 
-% organize into a matrix for easy access
-[results,dtimes,stations] = Results2Matrix(data,vars);
-
-handles.dtimes = dtimes;
-handles.stations = stations;
-
-handles.originalData = results;
-handles.workingData = results;
-handles.savedData = NaN(size(results));
-
-% get the stations that have data for each variable
-ind = zeros(size(results,3),size(results,2));
-for n = 1:size(results,3)
-   ind(n,:) = sum(isnan(results(:,:,n)),1) ~= size(results,1);
-end
-handles.StationVariables = ind;
-
-%%% load the VariableMenu into the pulldown %%%
-set(handles.VariableMenu,'String',vars)
-% set(handles.VariableMenu,'Value',1)
-% handles.variable_ind = 1;
-
-%%% load the stations into the list %%%
+% get the current list of stations
 StationList = createStationList(handles);
-set(handles.StationList,'String',StationList);
-% set(handles.StationList,'Value',1)
-% handles.station_ind = 1;
 
-% save the data
-guidata(hObject,handles);
+% check if there has been a plot before and remove old staitons
+if ~isempty(handles.StationPlot)
+    delete(handles.StationPlot)
+end
 
-% plot the first station, first variable
-UpdatePlot_Callback(handles.UpdatePlot,eventdata,handles);
+for n = 1:length(StationList)
+    
+    % index into the main data struct
+    ind = strcmp(StationList{n}, handles.stations);
+    
+    if ismember(n, handles.StationList.Value)
+        markerFaceColor = 'r';
+        markerSize = 10;
+    else
+        markerFaceColor = 'none';
+        markerSize = 6;
+    end
+    
+    p(n) = plot(handles.mapAxes, handles.originalData(ind).X, handles.originalData(ind).Y,...
+        'ro', 'MarkerFaceColor', markerFaceColor,...
+        'MarkerSize', markerSize);
+    
+end
+
+handles.StationPlot = p;
+
+
 
 % --- Executes on button press in UpdatePlot.
 function UpdatePlot_Callback(hObject, eventdata, handles)
@@ -221,52 +323,92 @@ function UpdatePlot_Callback(hObject, eventdata, handles)
 
 %%% DETERMINE THE STATION AND VARIABLES TO PLOT %%%
 [station_ind,variable_ind] = getStationVariables(handles);
+vars = handles.variables(variable_ind);
 
 %%% PLOT THE VARIABLES AND STATIONS %%%
-% prep the axes
-cla(handles.axes,'reset')
-hold(handles.axes,'on')
 
-% get the colors
-nStations = length(station_ind);
-colors = lines(nStations);
-set(gca, 'ColorOrder', colors)
+% remove and create the axes
+delete(handles.plotPanel.Children)
+sp = tight_subplot2(handles.plotPanel, length(variable_ind),1);
 
-% plot the original data
-if get(handles.OriginalDataCheck,'Value')
-    plot(handles.axes,handles.dtimes,handles.originalData(:,station_ind,variable_ind),'--');
+for v = 1:length(variable_ind)
+    
+    hold(sp(v), 'on')
+    
+    % get the colors
+    nStations = length(station_ind);
+    colors = lines(nStations);
+    set(gca, 'ColorOrder', colors)
+    
+    % pull out all stations with data
+    pl = NaN(3,length(station_ind));
+    for k = 1:length(station_ind)
+        
+        % plot the original data
+        if handles.OriginalDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k))
+            pl(1,k) = plot(sp(v), handles.originalData(station_ind(k)).data.date_time, ...
+                handles.originalData(station_ind(k)).data.(vars{v}),'--',...
+                'color',colors(k,:));
+        end
+        
+        % plot the working data
+        if handles.WorkingDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k))
+            pl(2,k) = plot(sp(v), handles.workingData(station_ind(k)).data.date_time, ...
+                handles.workingData(station_ind(k)).data.(vars{v}),'-',...
+                'color',colors(k,:));
+        end
+        
+        % plot the working data
+        if handles.SavedDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k))
+            pl(3,k) = plot(sp(v), handles.workingData(station_ind(k)).data.date_time, ...
+                handles.workingData(station_ind(k)).data.(vars{v}),'-',...
+                'Linewidth',2,...
+                'color',colors(k,:));
+        end
+        
+    end
+    
+    axis(sp(v), 'tight')
+    
+    % fix the x axis
+    if v == length(variable_ind)
+        datetick(sp(v), 'x','mm-dd-yy','keeplimits','keepticks')
+    else
+        set(sp(v),'XTickLabel',[])
+    end
+    
+    % fix the y axis
+    set(sp(v),'YAxisLocation','right',...
+        'Fontsize',14,...
+        'Fontweight','bold')
+    yl = ylabel(sp(v), handles.variables{variable_ind(v)});
+    set(yl,'interpreter','none')
+    
+    pl(sum(isnan(pl),2) == size(pl,2),:) = [];   % remove rows with all nan
+    pind = ~isnan(pl);
+    
+    if ~isempty(pl)
+        % variable selected, one station, but no data
+        pl = pl(end,:);
+        legend(sp(v), pl(pind), handles.stations(station_ind(pind)),...
+            'Location','Northwest')
+    end
 end
 
-% plot the working data
-if get(handles.WorkingDataCheck,'Value')
-    plot(handles.axes,handles.dtimes,handles.workingData(:,station_ind,variable_ind),'-')
-end
+linkaxes(sp,'x')
+handles.plotAxes = sp;
 
-% plot the working data
-if get(handles.SavedDataCheck,'Value')
-    plot(handles.axes,handles.dtimes,handles.savedData(:,station_ind,variable_ind),'-','Linewidth',2)
-end
+% save the data
+guidata(hObject,handles);
 
-axis tight
 
-% fix the x axis
-datetick('x','mm-dd-yy','keeplimits','keepticks')
-
-% fix the y axis
-set(handles.axes,'YAxisLocation','right',...
-    'Fontsize',14,...
-    'Fontweight','bold')
-yl = ylabel(handles.vars{variable_ind});
-set(yl,'interpreter','none') 
-
-legend(handles.stations(station_ind),'Location','Northwest')
 
 
 function StationList = createStationList(handles)
 % create the station list based on the variable_ind
 
-ind = handles.StationVariables(get(handles.VariableMenu,'Value'),:);
-ind = logical(ind);
+ind = handles.StationVariables(get(handles.variableList,'Value'),:);
+ind = logical(sum(ind,1));
 
 StationList = handles.stations(ind);
 
@@ -451,8 +593,8 @@ function resetWorkingDataButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 choice = questdlg('Are you sure you want to clear the current working data for these stations?', ...
-	'Clear Working Data', ...
-	'Yes','No','No');
+    'Clear Working Data', ...
+    'Yes','No','No');
 
 if strcmp(choice,'Yes')
     [station_ind,variable_ind] = getStationVariables(handles);
@@ -515,7 +657,7 @@ function Menu_Filtering_Smoothn_Callback(hObject, eventdata, handles)
 output = smoothnOptions(handles.smoothn);
 
 if isstruct(output)
-   
+    
     handles.smoothn.smoothingParameterValue = output.smoothingParameterValue;
     handles.smoothn.TolZValue = output.TolZValue;
     handles.smoothn.MaxIterValue = output.MaxIterValue;
@@ -533,7 +675,7 @@ function Menu_Filtering_MedianFilter_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 x = inputdlg('Enter median filter order number ',...
-             'Medfilt1', [1 50]);
+    'Medfilt1', [1 50]);
 data = str2num(x{:});
 
 handles.medfilt.FilterOrderValue = data;
@@ -667,7 +809,7 @@ hdr = strjoin(hdr,',');
 sData(isnan(sData)) = -9999;
 
 for n = 1:length(vars)
-   
+    
     % open the file
     f = fullfile(pathname,['CorrectedData.' vars{n} '.csv']);
     fid = fopen(f,'w');
@@ -706,3 +848,6 @@ variable_ind = sum(variable_ind,2) ~= 0;
 data = data(:,station_ind,variable_ind);
 stations = stations(station_ind);
 vars = vars(variable_ind);
+
+
+
