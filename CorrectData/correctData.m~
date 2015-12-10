@@ -8,10 +8,10 @@ function handles = correctData(handles, variable)
 % get the station and variables selected
 [station_ind,variable_ind] = getStationVariables(handles);
 
-for k = 1:length(station_ind)
+for n = 1:length(station_ind)
     
     % get the working data
-    data = handles.workingData(station_ind(k)).data.(variable);
+    data = handles.workingData(station_ind(n)).data.(variable);
     
     % the no data value
     noData = handles.noDataValue;
@@ -78,16 +78,8 @@ for k = 1:length(station_ind)
                 x(ind(:,n)) = [];
                 
                 xind = fillGaps(x,xi,handles.maxGapValue);
+                if x(1
                 data(xind,n) = NaN;
-                
-                % refill the gaps at the beginning and end
-                if x(1) > 1
-                    data(1:x(1),n) = NaN;
-                end
-                if x(end) ~= size(data,1)
-                    data(x(end):end,n) = NaN;
-                end
-                
             end
         else
             data(ind) = NaN;
@@ -99,7 +91,7 @@ for k = 1:length(station_ind)
     data(isnan(data)) = noData;
     
     % save data back in the working data
-    handles.workingData(station_ind(k)).data.(variable) = data;
+    handles.workingData(station_ind(n)).data.(variable) = data;
     
 end
 

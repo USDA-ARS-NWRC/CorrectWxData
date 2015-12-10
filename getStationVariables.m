@@ -9,5 +9,5 @@ station_ind = get(handles.StationList,'Value');
 variable_ind = get(handles.variableList,'Value');
 
 % correct the station list
-sind = find(handles.StationVariables(variable_ind,:));
+sind = find(any(handles.StationVariables(variable_ind,:),1));
 station_ind = sind(station_ind);

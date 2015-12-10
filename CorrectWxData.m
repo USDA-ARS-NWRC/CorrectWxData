@@ -22,7 +22,7 @@ function varargout = CorrectWxData(varargin)
 
 % Edit the above text to modify the response to help CorrectWxData
 
-% Last Modified by GUIDE v2.5 09-Dec-2015 08:50:37
+% Last Modified by GUIDE v2.5 09-Dec-2015 16:28:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -129,6 +129,7 @@ handles.StationPlot = [];
 
 % plotPanel axes
 handles.plotAxes = [];
+handles.brushObject = brush;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -247,7 +248,10 @@ if isstruct(results)
     % store the results in handles
     handles.originalData = results;
     handles.workingData = results;
-    handles.savedData = cell2struct(cell(size(fieldnames(results))),fieldnames(results),1);
+    handles.savedData = results;
+    for n = 1:length(handles.savedData)
+        handles.savedData(n).data = [];
+    end
     
     % get the stations that have data for each variables
     ind = zeros(length(handles.variables),length(results));
@@ -307,7 +311,8 @@ for n = 1:length(StationList)
     
     p(n) = plot(handles.mapAxes, handles.originalData(ind).X, handles.originalData(ind).Y,...
         'ro', 'MarkerFaceColor', markerFaceColor,...
-        'MarkerSize', markerSize);
+        'MarkerSize', markerSize,...
+        'Tag',handles.originalData(ind).primary_id);
     
 end
 
@@ -329,11 +334,33 @@ vars = handles.variables(variable_ind);
 
 % remove and create the axes
 delete(handles.plotPanel.Children)
-sp = tight_subplot2(handles.plotPanel, length(variable_ind),1);
+sp = tight_subplot2(handles.plotPanel, length(variable_ind), 1, 0.02, 0.05, 0.08);
+
+btn_hgt = 0.05;
 
 for v = 1:length(variable_ind)
     
     hold(sp(v), 'on')
+    
+    % create the buttons
+    pos = get(sp(v),'Position');
+    handles.CorrectButton(v) = uicontrol(handles.plotPanel, 'Style', 'pushbutton', ...
+        'String', 'Correct',...
+        'Units', 'normal',....
+        'Position', [0.01 pos(2)+pos(4)*1/4+2*1.1*btn_hgt 0.05 btn_hgt],...
+        'Callback', {@correctDataButton_Callback, vars{v}});
+    handles.SaveButton(v) = uicontrol(handles.plotPanel, 'Style', 'pushbutton', ...
+        'String', 'Save',...
+        'Units', 'normal',....
+        'Position', [0.01 pos(2)+pos(4)*1/4+1.1*btn_hgt 0.05 btn_hgt],...
+        'Callback', {@saveDataButton_Callback, vars{v}});
+    handles.ResetButton(v) = uicontrol(handles.plotPanel, 'Style', 'pushbutton', ...
+        'String', 'Reset',...
+        'Units', 'normal',....
+        'Position', [0.01 pos(2)+pos(4)*1/4 0.05 btn_hgt],...
+        'Callback', {@resetWorkingDataButton_Callback, vars{v}});
+    
+    
     
     % get the colors
     nStations = length(station_ind);
@@ -358,10 +385,12 @@ for v = 1:length(variable_ind)
                 'color',colors(k,:));
         end
         
-        % plot the working data
-        if handles.SavedDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k))
-            pl(3,k) = plot(sp(v), handles.workingData(station_ind(k)).data.date_time, ...
-                handles.workingData(station_ind(k)).data.(vars{v}),'-',...
+        % plot the saved data
+        if handles.SavedDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k)) && ...
+            isfield(handles.savedData(station_ind(k)).data, vars(variable_ind(v)))
+            
+            pl(3,k) = plot(sp(v), handles.savedData(station_ind(k)).data.date_time, ...
+                handles.savedData(station_ind(k)).data.(vars{v}),'-',...
                 'Linewidth',2,...
                 'color',colors(k,:));
         end
@@ -385,11 +414,11 @@ for v = 1:length(variable_ind)
     set(yl,'interpreter','none')
     
     pl(sum(isnan(pl),2) == size(pl,2),:) = [];   % remove rows with all nan
-    pind = ~isnan(pl);
     
     if ~isempty(pl)
         % variable selected, one station, but no data
         pl = pl(end,:);
+        pind = ~isnan(pl);
         legend(sp(v), pl(pind), handles.stations(station_ind(pind)),...
             'Location','Northwest')
     end
@@ -514,10 +543,14 @@ function SavedDataCheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of SavedDataCheck
 
 % --- Executes on button press in correctDataButton.
-function correctDataButton_Callback(hObject, eventdata, handles)
+function correctDataButton_Callback(hObject, eventdata, variable)
 % hObject    handle to correctDataButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% This performs the correction for the currently selected variable
+
+handles = guidata(hObject);
 
 % calls the correcting functions
 if get(handles.PrecipCorrectionCheck,'Value')
@@ -541,7 +574,7 @@ if get(handles.PrecipCorrectionCheck,'Value')
     
 else
     
-    handles = correctData(handles);
+    handles = correctData(handles, variable);
 end
 
 guidata(hObject,handles);
@@ -549,14 +582,19 @@ guidata(hObject,handles);
 UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
 
 % --- Executes on button press in saveDataButton.
-function saveDataButton_Callback(hObject, eventdata, handles)
+function saveDataButton_Callback(hObject, eventdata, variable)
 % hObject    handle to saveDataButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+handles = guidata(hObject);
+
 [station_ind,variable_ind] = getStationVariables(handles);
 
-handles.savedData(:,station_ind,variable_ind) = handles.workingData(:,station_ind,variable_ind);
+for n = 1:length(station_ind)
+    handles.savedData(station_ind(n)).data.date_time = handles.workingData(station_ind(n)).data.date_time;
+    handles.savedData(station_ind(n)).data.(variable) = handles.workingData(station_ind(n)).data.(variable);
+end
 
 guidata(hObject,handles);
 
@@ -587,7 +625,7 @@ end
 
 
 % --- Executes on button press in resetWorkingDataButton.
-function resetWorkingDataButton_Callback(hObject, eventdata, handles)
+function resetWorkingDataButton_Callback(hObject, eventdata, variable)
 % hObject    handle to resetWorkingDataButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -596,9 +634,14 @@ choice = questdlg('Are you sure you want to clear the current working data for t
     'Clear Working Data', ...
     'Yes','No','No');
 
+handles = guidata(hObject);
+
 if strcmp(choice,'Yes')
     [station_ind,variable_ind] = getStationVariables(handles);
-    handles.workingData(:,station_ind,variable_ind) = handles.originalData(:,station_ind,variable_ind);
+    for n = 1:length(station_ind)
+       handles.workingData(station_ind(n)).data.(variable) =  handles.originalData(station_ind(n)).data.(variable);
+    end
+%     handles.workingData(:,station_ind,variable_ind) = handles.originalData(:,station_ind,variable_ind);
 end
 
 guidata(hObject,handles);
@@ -725,6 +768,30 @@ function PrecipCorrectionCheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of PrecipCorrectionCheck
 
 
+
+% --- Executes on button press in paintBrush.
+function paintBrush_Callback(hObject, eventdata, handles)
+% hObject    handle to paintBrush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of paintBrush
+
+% if get(hObject, 'Value')
+% %     h = ;%(handles.figure1);
+%     set(handles.brushObject, 'Enable', 'on')%, 'ActionPostCallback', @GetSelectedData)
+%     
+% else
+%     Handle = findobj(gcf,'-property','BrushData')
+%     set(handles.brushObject, 'Enable', 'off')
+% end
+% 
+% % save the data
+% guidata(hObject,handles);
+% 
+% function GetSelectedData()
+
+
 % --------------------------------------------------------------------
 function Menu_Precipitation_Callback(hObject, eventdata, handles)
 % hObject    handle to Menu_Precipitation (see GCBO)
@@ -848,6 +915,3 @@ variable_ind = sum(variable_ind,2) ~= 0;
 data = data(:,station_ind,variable_ind);
 stations = stations(station_ind);
 vars = vars(variable_ind);
-
-
-
