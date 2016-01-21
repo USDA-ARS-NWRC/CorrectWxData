@@ -48,15 +48,22 @@ else
     return;
 end
 
+%%% check the tbl_data_from %%%
+if ~isfield(config.database, 'tbl_data_from')
+    errordlg ('Error in configuration file for [database], "tbl_data_from" not specified');
+    return;
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Load the station metadata %%%
+h = waitbar(0, 'Loading station metadata ...');
 
 if flag == 0
     % get metadata for the desired stations
     
     sta = regexp(handles.config.stations.stations,',','split');
     
-    qry = sprintf('SELECT * FROM metadata WHERE primary_id IN (''%s'')',...
+    qry = sprintf('SELECT * FROM tbl_metadata WHERE primary_id IN (''%s'')',...
         strjoin(sta,''','''));
     curs = exec(c,qry);
     curs = fetch(curs);
@@ -67,8 +74,8 @@ else
     
     client = handles.config.stations.client;
     
-    qry = sprintf(['SELECT metadata.* FROM metadata INNER JOIN stations ON',...
-        ' metadata.primary_id=stations.station_id WHERE stations.client=''%s'''],...
+    qry = sprintf(['SELECT tbl_metadata.* FROM tbl_metadata INNER JOIN tbl_stations ON',...
+        ' tbl_metadata.primary_id=tbl_stations.station_id WHERE tbl_stations.client=''%s'''],...
         client);
     curs = exec(c,qry);
     curs = fetch(curs);
@@ -79,10 +86,12 @@ end
 sta = {metadata.primary_id};
 
 %%% now get the data %%%
-qry = sprintf(['SELECT station_id,date_time,%s FROM fixed '...
+waitbar(1/3, h, 'Getting data from database...');
+
+qry = sprintf(['SELECT station_id,date_time,%s FROM %s '...
     'WHERE date_time BETWEEN ''%s'' AND ''%s'' AND '...
     'station_id IN (''%s'') ORDER BY date_time ASC'],...
-    vars, dateFrom, dateTo, strjoin(sta,''','''));
+    vars, config.database.tbl_data_from, dateFrom, dateTo, strjoin(sta,''','''));
 curs = exec(c,qry);
 curs = fetch(curs);
 data = curs.Data;
@@ -93,6 +102,8 @@ if ~isstruct(data)
 end
 
 %%% parse the returned data from the database %%%
+waitbar(2/3, h, 'Organizing data ...');
+
 vd = ['date_time', v]';
 
 staind = zeros(size(sta));
@@ -119,10 +130,13 @@ for n = 1:length(sta)
         staind(n) = 1;
     end
     
+    waitbar(n/length(sta), h);
 end
 metadata(logical(staind)) = [];
 
 results = metadata;
+
+delete(h);
 
 close(curs); close(c);
 % 
