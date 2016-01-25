@@ -444,11 +444,7 @@ for v = 1:length(variable_ind)
         pl = pl(end,:);
         pind = ~isnan(pl);
         legend(sp(v), pl(pind), handles.stations(station_ind(pind)),...
-<<<<<<< HEAD
-            'Location','northwestoutside')
-=======
-            'Location','NorthwestOutside')
->>>>>>> 436a879a2a06ee60bd946baf376e3db60a01b97a
+            'Location','Northwest')
     end
     
     xl(v,:) = get(sp(v), 'XLim');
@@ -457,11 +453,8 @@ end
 
 linkaxes(sp,'x')
 
-% remove some emply plots
-xl(xl < 10) = NaN;
-
 for k = 1:length(sp)
-    set(sp(k), 'XLim', [nanmin(xl(:,1)) nanmax(xl(:,2))])
+    
 end
 
 handles.plotAxes = sp;
@@ -907,15 +900,11 @@ for n = 1:length(handles.plotAxes)
     v = h.Tag;
     
     for m = 1:length(h.Children)
-        % determine the station since they may not line up
-        sta_name = h.Children(m).DisplayName;
-        stind = strcmp(sta_name, handles.stations);
-        
         % have to make sure that 'remove points' will work
-        ind = ismember(handles.workingData(stind).data.date_time, h.Children(m).XData);
-        handles.workingData(stind).data.(v) = NaN(size(ind));
+        ind = ismember(handles.workingData(station_ind(m)).data.date_time, h.Children(m).XData);
+        handles.workingData(station_ind(m)).data.(v) = NaN(size(ind));
         
-        handles.workingData(stind).data.(v)(ind) = h.Children(m).YData;
+        handles.workingData(station_ind(m)).data.(v)(ind) = h.Children(m).YData;
     end
     
 end
