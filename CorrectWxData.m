@@ -443,7 +443,7 @@ for v = 1:length(variable_ind)
         pl = pl(end,:);
         pind = ~isnan(pl);
         legend(sp(v), pl(pind), handles.stations(station_ind(pind)),...
-            'Location','Northwest')
+            'Location','northwestoutside')
     end
 end
 

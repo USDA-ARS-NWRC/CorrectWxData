@@ -49,14 +49,12 @@ switch ext
         
     case '.asc'
         [A,R] = arcgridread(filename);
-        [m, n] = size(A);
-        data.ncols = n;
-        data.nrows = m;
-        data.xllcorner = R(3) + R(2)/2;
-        data.yllcorner = R(6) + (m * R(4)) + (R(4) / 2);
-        data.cellsize = R(2);
-        data.NODATA_value = -9999; % Just set to -9999 for now.
-        data.x = data.xllcorner + [0:n-1]*data.cellsize;
-        data.y = data.yllcorner + [0:m-1]*data.cellsize;
-        data.data = A;
+        [, data.nrows] = size(A);
+        data.xllcorner = ;
+        data.yllcorner = ;
+        data.cellsize = ;
+        data.NODATA_value = ;
+        data.x = ;
+        data.y = ;
+        
 end
