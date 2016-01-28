@@ -449,7 +449,11 @@ for v = 1:length(variable_ind)
         pl = pl(end,:);
         pind = ~isnan(pl);
         legend(sp(v), pl(pind), handles.stations(station_ind(pind)),...
+<<<<<<< HEAD
+            'Location','northwestoutside')
+=======
             'Location','NorthwestOutside')
+>>>>>>> 436a879a2a06ee60bd946baf376e3db60a01b97a
     end
     
     xl(v,:) = get(sp(v), 'XLim');
