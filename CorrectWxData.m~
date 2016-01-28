@@ -22,7 +22,7 @@ function varargout = CorrectWxData(varargin)
 
 % Edit the above text to modify the response to help CorrectWxData
 
-% Last Modified by GUIDE v2.5 28-Jan-2016 14:38:07
+% Last Modified by GUIDE v2.5 28-Jan-2016 14:05:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1336,7 +1336,6 @@ function joinVariables_ClickedCallback(hObject, eventdata, handles)
 
 
 [Selection,ok] = listdlg('ListString', handles.variables,...
-    'InitialValue', handles.variableList.Value, ...
     'SelectionMode', 'multiple',...
     'Name', 'Variable combine',...
     'PromptString', 'Select variables to join',...
@@ -1344,14 +1343,6 @@ function joinVariables_ClickedCallback(hObject, eventdata, handles)
 
 
 if ok == 1
-    
-    % turn off the brush if on
-    flag = 0;
-    if strcmp(handles.brushTool.State, 'on')
-        brushTool_OffCallback(handles.brushTool, eventdata, handles);
-        handles = guidata(hObject); % need to reload
-        flag = 1;
-    end
     
     % get the stations that are showing
     [station_ind,variable_ind] = getStationVariables(handles);
@@ -1361,46 +1352,33 @@ if ok == 1
         return
     end
     
-    if length(Selection) < 2
-        errordlg('Please pick more than two variables to join');
-        return
-    end
-    
     
     vars = handles.variables(Selection);
     
     for n = 1:length(station_ind)
         
         % deteremine where all the NaN values are
-        ind = zeros(size(handles.workingData(station_ind(n)).data.date_time));
+        ind = zeros(size(handles.workingData(station_ind(n)).data.date_time));      
         for v = 1:length(vars)
-            % only record values that are at the stations
-            if handles.StationVariables(variable_ind(v),station_ind(n))
-                ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
-            end
+           ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
         end
-        
-        ind = logical(ind);
         
         % remove all the NaN values
-        for v = 1:length(vars)
-            if handles.StationVariables(variable_ind(v),station_ind(n))
-                handles.workingData(station_ind(n)).data.(vars{v})(ind) = NaN;
-            end
-        end
+        
+        
+        handles.workingData(n).data.(var) = az;
         
     end
     
     guidata(hObject,handles);
     
-    % turn the bursh back on if it was
-    if flag
-        brushTool_OnCallback(handles.brushTool, eventdata, handles);
-    end
-    
     % update the plot automatically
     UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
     
-   
-    
 end
+
+
+
+
+
+
