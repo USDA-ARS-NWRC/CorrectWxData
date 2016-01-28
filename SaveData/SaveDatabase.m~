@@ -55,13 +55,8 @@ data = data(ind);
 %%% remove any split variables that may have been saved %%%
 for n = 1:length(data)
    for v = 1:length(handles.splitVariables)
-      if isfield(data(n).data, handles.splitVariables(v).u)
-          data(n).data = rmfield(data(n).data, handles.splitVariables(v).u);
-      end
-      if isfield(data(n).data, handles.splitVariables(v).v)
-          data(n).data = rmfield(data(n).data, handles.splitVariables(v).v);
-      end
-   end
+       
+       e
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
