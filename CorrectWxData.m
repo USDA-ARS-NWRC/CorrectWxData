@@ -139,6 +139,8 @@ handles.DiffButton.dew_point_temperature = 0;
 
 handles.splitVariables = struct('variable', [], 'u', [], 'v', []);
 
+handles.saveVariables = [];
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -636,6 +638,12 @@ handles = guidata(hObject);
 
 [station_ind,variable_ind] = getStationVariables(handles);
 
+if isempty(handles.saveVariables)
+    handles.saveVariables{1} = variable;
+elseif sum(ismember(handles.saveVariables, variable)) == 0
+    handles.saveVariables{end+1} = variable;
+end
+
 for n = 1:length(station_ind)
     handles.savedData(station_ind(n)).data.date_time = handles.workingData(station_ind(n)).data.date_time;
     handles.savedData(station_ind(n)).data.(variable) = handles.workingData(station_ind(n)).data.(variable);
@@ -985,14 +993,12 @@ function Menu_SaveData_matFile_Callback(hObject, eventdata, handles)
 
 f = fullfile(pathname,filename);
 
-% get the data
-stations = handles.stations;
-dtime = handles.dtimes;
-sData = handles.savedData;
-vars = handles.vars;
+% remove any stations with all NaN's
+[dtime, sData, stations, vars] = minimizeData(handles.savedData, ...
+    handles.stations, handles.saveVariables);
 
 % remove any stations with all NaN's
-[sData,stations,vars] = minimizeData(sData,stations,vars);
+% [sData,stations,vars] = minimizeData(sData,stations,vars);
 
 % save the data
 save(f,'sData','stations','vars','dtime')
@@ -1007,17 +1013,12 @@ function Menu_SaveData_csvFile_Callback(hObject, eventdata, handles)
 
 pathname = uigetdir(pwd,'Save CSV''s to Directory ');
 
-% get the data
-stations = handles.stations;
-dtime = handles.dtimes;
-sData = handles.savedData;
-vars = handles.vars;
-
 % remove any stations with all NaN's
-[sData,stations,vars] = minimizeData(sData,stations,vars);
+[dtime, sData, stations, vars] = minimizeData(handles.savedData, ...
+    handles.stations, handles.saveVariables);
 
 % write a file for each variable
-hdr = ['date' stations(:)'];
+hdr = ['date_time' stations(:)'];
 hdr = strjoin(hdr,',');
 sData(isnan(sData)) = -9999;
 
@@ -1035,7 +1036,7 @@ for n = 1:length(vars)
         line = sData(k,:,n);
         line = cellstr(num2str(line(:)))';  % convert numbers to strings
         
-        dt = datestr(dtime(k),'mm-dd-yyyy HH:MM');
+        dt = datestr(dtime(k),'yyyy-mm-dd HH:MM');
         
         % add date and commas
         line = strtrim([dt line]);
@@ -1206,16 +1207,29 @@ else
 end
 
 
-function [data,stations,vars] = minimizeData(data,stations,vars)
+function [dtimes,sData,stations,vars] = minimizeData(data, stations, vars)
 % Take the matrix data and remove all colums with all NaN values in the 3rd
 % dimension.  Return the stations and variables associated with it.
 
-nVals = size(data,1);
-variable_ind = sum(isnan(data),1) ~= nVals;
+
+% put all the saved data into a big matrix
+dtimes = data(1).data.date_time;
+sData = NaN(length(dtimes), length(data), length(vars));
+for v = 1:length(vars)
+    for s = 1:length(data)
+        if isfield(data(s).data, vars{v})
+            sData(:,s,v) = data(s).data.(vars{v});
+        end
+    end
+end
+
+
+nVals = size(sData,1);
+variable_ind = sum(isnan(sData),1) ~= nVals;
 station_ind = sum(variable_ind,3) ~= 0;
 variable_ind = sum(variable_ind,2) ~= 0;
 
-data = data(:,station_ind,variable_ind);
+sData = sData(:,station_ind,variable_ind);
 stations = stations(station_ind);
 vars = vars(variable_ind);
 
@@ -1401,6 +1415,6 @@ if ok == 1
     % update the plot automatically
     UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
     
-   
+    
     
 end

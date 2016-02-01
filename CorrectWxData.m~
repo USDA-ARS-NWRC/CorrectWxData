@@ -22,7 +22,7 @@ function varargout = CorrectWxData(varargin)
 
 % Edit the above text to modify the response to help CorrectWxData
 
-% Last Modified by GUIDE v2.5 28-Jan-2016 14:05:32
+% Last Modified by GUIDE v2.5 28-Jan-2016 14:38:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -138,6 +138,8 @@ handles.DiffButton.vapor_pressure = 0;
 handles.DiffButton.dew_point_temperature = 0;
 
 handles.splitVariables = struct('variable', [], 'u', [], 'v', []);
+
+handles.saveVariables = [];
 
 % Update handles structure
 guidata(hObject, handles);
@@ -636,6 +638,12 @@ handles = guidata(hObject);
 
 [station_ind,variable_ind] = getStationVariables(handles);
 
+if isempty(handles.saveVariables)
+    handles.saveVariables{1} = variable;
+elseif sum(ismember(handles.saveVariables, variable)) == 0
+    handles.saveVariables{end+1} = variable;
+end
+
 for n = 1:length(station_ind)
     handles.savedData(station_ind(n)).data.date_time = handles.workingData(station_ind(n)).data.date_time;
     handles.savedData(station_ind(n)).data.(variable) = handles.workingData(station_ind(n)).data.(variable);
@@ -1009,17 +1017,15 @@ pathname = uigetdir(pwd,'Save CSV''s to Directory ');
 
 % get the data
 stations = handles.stations;
-dtime = handles.dtimes;
-sData = handles.savedData;
-vars = handles.vars;
+vars = handles.variables;
 
 % remove any stations with all NaN's
-[sData,stations,vars] = minimizeData(sData,stations,vars);
+[dtimes, sData, stations, vars] = minimizeData(handles.savedData, handles.saveVariables);
 
 % write a file for each variable
-hdr = ['date' stations(:)'];
-hdr = strjoin(hdr,',');
-sData(isnan(sData)) = -9999;
+% hdr = ['date_time' stations(:)'];
+% hdr = strjoin(hdr,',');
+% sData(isnan(sData)) = -9999;
 
 for n = 1:length(vars)
     
@@ -1206,16 +1212,29 @@ else
 end
 
 
-function [data,stations,vars] = minimizeData(data,stations,vars)
+function [dtimes,sData,stations,vars] = minimizeData(data, stations, vars)
 % Take the matrix data and remove all colums with all NaN values in the 3rd
 % dimension.  Return the stations and variables associated with it.
 
-nVals = size(data,1);
-variable_ind = sum(isnan(data),1) ~= nVals;
+
+% put all the saved data into a big matrix
+dtimes = data(1).data.date_time;
+sData = NaN(length(dtimes), length(data), length(vars));
+for v = 1:length(vars)
+    for s = 1:length(data)
+        if isfield(data(s).data, vars{v})
+            sData(:,s,v) = data(s).data.(vars{v});
+        end
+    end
+end
+
+
+nVals = size(sData,1);
+variable_ind = sum(isnan(sData),1) ~= nVals;
 station_ind = sum(variable_ind,3) ~= 0;
 variable_ind = sum(variable_ind,2) ~= 0;
 
-data = data(:,station_ind,variable_ind);
+sData = sData(:,station_ind,variable_ind);
 stations = stations(station_ind);
 vars = vars(variable_ind);
 
@@ -1336,6 +1355,7 @@ function joinVariables_ClickedCallback(hObject, eventdata, handles)
 
 
 [Selection,ok] = listdlg('ListString', handles.variables,...
+    'InitialValue', handles.variableList.Value, ...
     'SelectionMode', 'multiple',...
     'Name', 'Variable combine',...
     'PromptString', 'Select variables to join',...
@@ -1343,6 +1363,14 @@ function joinVariables_ClickedCallback(hObject, eventdata, handles)
 
 
 if ok == 1
+    
+    % turn off the brush if on
+    flag = 0;
+    if strcmp(handles.brushTool.State, 'on')
+        brushTool_OffCallback(handles.brushTool, eventdata, handles);
+        handles = guidata(hObject); % need to reload
+        flag = 1;
+    end
     
     % get the stations that are showing
     [station_ind,variable_ind] = getStationVariables(handles);
@@ -1352,33 +1380,46 @@ if ok == 1
         return
     end
     
+    if length(Selection) < 2
+        errordlg('Please pick more than two variables to join');
+        return
+    end
+    
     
     vars = handles.variables(Selection);
     
     for n = 1:length(station_ind)
         
         % deteremine where all the NaN values are
-        ind = zeros(size(handles.workingData(station_ind(n)).data.date_time));      
+        ind = zeros(size(handles.workingData(station_ind(n)).data.date_time));
         for v = 1:length(vars)
-           ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
+            % only record values that are at the stations
+            if handles.StationVariables(variable_ind(v),station_ind(n))
+                ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
+            end
         end
         
+        ind = logical(ind);
+        
         % remove all the NaN values
-        
-        
-        handles.workingData(n).data.(var) = az;
+        for v = 1:length(vars)
+            if handles.StationVariables(variable_ind(v),station_ind(n))
+                handles.workingData(station_ind(n)).data.(vars{v})(ind) = NaN;
+            end
+        end
         
     end
     
     guidata(hObject,handles);
     
+    % turn the bursh back on if it was
+    if flag
+        brushTool_OnCallback(handles.brushTool, eventdata, handles);
+    end
+    
     % update the plot automatically
     UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
     
+    
+    
 end
-
-
-
-
-
-
