@@ -22,7 +22,7 @@ function varargout = CorrectWxData(varargin)
 
 % Edit the above text to modify the response to help CorrectWxData
 
-% Last Modified by GUIDE v2.5 28-Jan-2016 14:38:07
+% Last Modified by GUIDE v2.5 01-Feb-2016 15:12:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -306,6 +306,8 @@ if ~isempty(handles.StationPlot)
     delete(handles.StationPlot)
 end
 
+hold(handles.mapAxes,'on')
+
 for n = 1:length(StationList)
     
     % index into the main data struct
@@ -330,6 +332,8 @@ for n = 1:length(StationList)
 end
 
 handles.StationPlot = p;
+
+% hold(handles.mapAxes,'off')
 
 
 
@@ -1418,3 +1422,76 @@ if ok == 1
     
     
 end
+
+
+
+% --------------------------------------------------------------------
+function lassoTool_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to lassoTool (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+
+
+% --------------------------------------------------------------------
+function lassoTool_OnCallback(hObject, eventdata, handles)
+% hObject    handle to lassoTool (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get the map axis image handle
+h = findobj(handles.mapAxes, 'Type', 'image');
+
+% have the user select some data
+[pointslist,xselect,yselect] = selectdata('Axes', handles.mapAxes,...
+    'Action', 'list',...
+    'Ignore', h,...
+    'SelectionMode', 'Rect');
+
+% the last one should be the image data so remove
+% xselect(end) = [];
+% yselect(end) = [];
+
+xselect = cell2mat(xselect);
+yselect = cell2mat(yselect);
+
+if ~isempty(xselect)
+    
+    % have to determine the hard way which points they are
+    xdata = cell2mat({handles.originalData.X}');
+    ydata = cell2mat({handles.originalData.Y}');
+    
+    
+    station_ind = NaN(size(xselect));
+    for n = 1:length(xselect)
+        % find the distance to all the points
+        D = sqrt((xdata - xselect(n)).^2 + (ydata - yselect(n)).^2);
+        
+        % get the minimum value
+        [~,I] = min(D);
+        station_ind(n) = I;
+    end
+    station_ind = sort(station_ind);
+    
+    % now update the highlighted list
+    handles.StationList.Value = station_ind;
+    
+    % plot the stations on the map
+    handles = UpdateMap(handles);
+    
+    guidata(hObject,handles);
+    
+end
+
+lassoTool_OffCallback(hObject, eventdata, handles)
+
+
+% --------------------------------------------------------------------
+function lassoTool_OffCallback(hObject, eventdata, handles)
+% hObject    handle to lassoTool (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(hObject, 'State', 'off')

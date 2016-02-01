@@ -64,7 +64,7 @@ if flag == 0
     
     sta = regexp(handles.config.stations.stations,',','split');
     
-    qry = sprintf('SELECT * FROM tbl_metadata WHERE primary_id IN (''%s'')',...
+    qry = sprintf('SELECT * FROM tbl_metadata WHERE primary_id IN (''%s'') ORDER BY primary_id',...
         strjoin(sta,''','''));
     curs = exec(c,qry);
     curs = fetch(curs);
@@ -76,7 +76,7 @@ else
     client = handles.config.stations.client;
     
     qry = sprintf(['SELECT tbl_metadata.* FROM tbl_metadata INNER JOIN tbl_stations ON',...
-        ' tbl_metadata.primary_id=tbl_stations.station_id WHERE tbl_stations.client=''%s'''],...
+        ' tbl_metadata.primary_id=tbl_stations.station_id WHERE tbl_stations.client=''%s'' ORDER BY tbl_metadata.primary_id'],...
         client);
     curs = exec(c,qry);
     curs = fetch(curs);
