@@ -459,6 +459,7 @@ for v = 1:length(variable_ind)
     end
     
     xl(v,:) = get(sp(v), 'XLim');
+%     set(sp(v),'YTickLabel',get(sp(v),'YTick'))
     
 end
 
@@ -468,7 +469,9 @@ linkaxes(sp,'x')
 xl(xl < 10) = NaN;
 
 for k = 1:length(sp)
-    set(sp(k), 'XLim', [nanmin(xl(:,1)) nanmax(xl(:,2))])
+    set(sp(k), 'XLim', [nanmin(xl(:,1)) nanmax(xl(:,2))],...
+        'YTickLabelMode','auto',...
+        'YTickMode','auto')
 end
 
 handles.plotAxes = sp;
@@ -479,7 +482,7 @@ guidata(hObject,handles);
 
 
 
-function StationList = createStationList(handles)
+function [StationList,ind] = createStationList(handles)
 % create the station list based on the variable_ind
 
 ind = handles.StationVariables(get(handles.variableList,'Value'),:);
@@ -1441,6 +1444,9 @@ function lassoTool_OnCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% turn brush off if it's on
+brushTool_OffCallback(handles.brushTool, eventdata, handles);
+
 % get the map axis image handle
 h = findobj(handles.mapAxes, 'Type', 'image');
 
@@ -1459,9 +1465,11 @@ yselect = cell2mat(yselect);
 
 if ~isempty(xselect)
     
+    [StationList,station_ind] = createStationList(handles)
+    
     % have to determine the hard way which points they are
-    xdata = cell2mat({handles.originalData.X}');
-    ydata = cell2mat({handles.originalData.Y}');
+    xdata = cell2mat({handles.originalData(station_ind).X}');
+    ydata = cell2mat({handles.originalData(station_ind).Y}');
     
     
     station_ind = NaN(size(xselect));
