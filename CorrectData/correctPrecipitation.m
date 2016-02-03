@@ -95,11 +95,15 @@ for m = 1:M
             
             % Look for the next good precip value
             n = i + 1;
-            if i == N
+            if i == N || n == N
                 n = i;
             else
                 while CumPPT(n,m) == noData(m) || CumPPT(n,m) < 0
                     n = n + 1;
+                    if n == N
+                        n = i;
+                        break
+                    end
                 end
             end
             

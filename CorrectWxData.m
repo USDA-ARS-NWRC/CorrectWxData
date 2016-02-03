@@ -263,14 +263,18 @@ if isstruct(results)
         handles.savedData(n).data = [];
     end
     
-    % get the stations that have data for each variables
-    ind = zeros(length(handles.variables),length(results));
-    for n = 1:length(handles.variables)
-        for k = 1:length(results)
-            ind(n,k) = sum(isnan(results(k).data.(handles.variables{n}))) ~= length(results(k).data.date_time);
+    % get the stations that have data for each variables    
+    handles.StationVariables = struct([]);
+    for k = 1:length(results)
+        v = {};
+        for n = 1:length(handles.variables)
+           ind = sum(isnan(results(k).data.(handles.variables{n}))) ~= length(results(k).data.date_time);
+           if ind
+              v = [v handles.variables{n}]; 
+           end
         end
+        handles.StationVariables(1).(results(k).primary_id) = v;
     end
-    handles.StationVariables = ind;
     
     handles.stations = {results.primary_id}';
     
@@ -345,6 +349,7 @@ function UpdatePlot_Callback(hObject, eventdata, handles)
 
 %%% DETERMINE THE STATION AND VARIABLES TO PLOT %%%
 [station_ind,variable_ind] = getStationVariables(handles);
+stations = handles.stations;
 vars = handles.variables(variable_ind);
 
 %%% PLOT THE VARIABLES AND STATIONS %%%
@@ -406,28 +411,34 @@ for v = 1:length(variable_ind)
     pl = NaN(3,length(station_ind));
     for k = 1:length(station_ind)
         
+        % check to see if the station has any data to plot
+        flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(k)})));
+        
         % plot the original data
-        if handles.OriginalDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k))
+        if handles.OriginalDataCheck.Value && flag
             pl(1,k) = plot(sp(v), handles.originalData(station_ind(k)).data.date_time, ...
                 handles.originalData(station_ind(k)).data.(vars{v}),'--',...
                 'color',colors(k,:));
+            set(pl(1,k), 'Tag', 'originalData')
         end
         
         % plot the working data
-        if handles.WorkingDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k))
+        if handles.WorkingDataCheck.Value && flag
             pl(2,k) = plot(sp(v), handles.workingData(station_ind(k)).data.date_time, ...
                 handles.workingData(station_ind(k)).data.(vars{v}),'-',...
                 'color',colors(k,:));
+            set(pl(2,k), 'Tag', 'workingData')
         end
         
         % plot the saved data
-        if handles.SavedDataCheck.Value && handles.StationVariables(variable_ind(v),station_ind(k)) && ...
+        if handles.SavedDataCheck.Value && flag
                 isfield(handles.savedData(station_ind(k)).data, vars(v))
             
             pl(3,k) = plot(sp(v), handles.savedData(station_ind(k)).data.date_time, ...
                 handles.savedData(station_ind(k)).data.(vars{v}),'-',...
                 'Linewidth',2,...
                 'color',colors(k,:));
+            set(pl(3,k), 'Tag', 'savedData')
         end
         
     end
@@ -485,8 +496,15 @@ guidata(hObject,handles);
 function [StationList,ind] = createStationList(handles)
 % create the station list based on the variable_ind
 
-ind = handles.StationVariables(get(handles.variableList,'Value'),:);
-ind = logical(sum(ind,1));
+% variables selected
+variable_ind = get(handles.variableList,'Value');
+
+ind = zeros(length(handles.stations), length(variable_ind));
+for n = 1:length(handles.stations)
+    ind(n,:) = ismember(handles.variables(variable_ind), handles.StationVariables.(handles.stations{n}));
+end
+
+ind = logical(sum(ind,2));
 
 StationList = handles.stations(ind);
 
@@ -923,15 +941,19 @@ for n = 1:length(handles.plotAxes)
     v = h.Tag;
     
     for m = 1:length(h.Children)
-        % determine the station since they may not line up
-        sta_name = h.Children(m).DisplayName;
-        stind = strcmp(sta_name, handles.stations);
         
-        % have to make sure that 'remove points' will work
-        ind = ismember(handles.workingData(stind).data.date_time, h.Children(m).XData);
-        handles.workingData(stind).data.(v) = NaN(size(ind));
+        if strcmp(h.Children(m).Tag, 'workingData')
         
-        handles.workingData(stind).data.(v)(ind) = h.Children(m).YData;
+            % determine the station since they may not line up
+            sta_name = h.Children(m).DisplayName;
+            stind = strcmp(sta_name, handles.stations);
+            
+            % have to make sure that 'remove points' will work
+            ind = ismember(handles.workingData(stind).data.date_time, h.Children(m).XData);
+            handles.workingData(stind).data.(v) = NaN(size(ind));
+            
+            handles.workingData(stind).data.(v)(ind) = h.Children(m).YData;
+        end
     end
     
 end
@@ -1098,8 +1120,8 @@ if ~isempty(handles.plotAxes)
         handles.variableList.String = handles.variables;
         handles.variableList.Value = val;
         
-        ind = ismember(handles.variables,{'vapor_pressure'});
-        handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
+%         ind = ismember(handles.variables,{'vapor_pressure'});
+%         handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
         
     elseif sum(strcmp('dew_point_temperature',handles.variables(variable_ind))) == 0
         % vapor_pressure is not selected
@@ -1120,6 +1142,13 @@ if ~isempty(handles.plotAxes)
                 dpt = dewpt(vp);
                 dpt(isnan(vp)) = NaN;
                 handles.(f{k})(station_ind(n)).data.dew_point_temperature = dpt;
+                
+                % add the dew_point_temperature to the StationVariables if not
+                % already there
+                if any(strcmp('dew_point_temperature', handles.StationVariables.(handles.stations{station_ind(n)}))) == 0
+                    handles.StationVariables.(handles.stations{station_ind(n)}){end + 1} = 'dew_point_temperature';
+                end
+                
             end
         end
     end
@@ -1171,8 +1200,14 @@ if ~isempty(handles.plotAxes)
         handles.variableList.String = handles.variables;
         handles.variableList.Value = val;
         
-        ind = ismember(handles.variables,{'air_temp','relative_humidity'});
-        handles.StationVariables(end+1,:) = sum(handles.StationVariables(ind,:),1) == 2;
+        % see if the station has air_temp and relative_humidity and add the
+        % vapor_pressure
+%         for n = 1:length(station_ind)
+%             ind = ismember({'air_temp','relative_humidity'}, handles.StationVariables.(handles.stations{station_ind(n)}));
+%             if sum(ind) == 2
+%                 handles.StationVariables.(handles.stations{station_ind(n)}){end + 1} = 'vapor_pressure';
+%             end
+%         end
         
     elseif sum(strcmp('vapor_pressure',handles.variables(variable_ind))) == 0
         % vapor_pressure is not selected
@@ -1196,6 +1231,13 @@ if ~isempty(handles.plotAxes)
             if sum(isnan(rh)) ~= length(rh) && sum(isnan(ta)) ~= length(ta)
                 vp = rh2vp(ta, rh);
                 handles.(f{k})(station_ind(n)).data.vapor_pressure = vp;
+                
+                % add the vapor pressure to the StationVariables if not
+                % already there
+                if any(strcmp('vapor_pressure', handles.StationVariables.(handles.stations{station_ind(n)}))) == 0
+                    handles.StationVariables.(handles.stations{station_ind(n)}){end + 1} = 'vapor_pressure';
+                end
+                
             end
         end
         
@@ -1282,9 +1324,13 @@ if ok == 1
         handles.variableList.String = handles.variables;
         
         % add the station variables
-        ind = ismember(handles.variables,var);
-        handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
-        handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
+        for n = 1:length(handles.stations)
+            ind = any(ismember(handles.StationVariables.(handles.stations{n}), var));
+            if ind
+                handles.StationVariables.(handles.stations{n}){end+1} = c{1};
+                handles.StationVariables.(handles.stations{n}){end+1} = c{2};
+            end
+        end
         
         % add to the diff button tracker
         handles.DiffButton.(c{1}) = 0;
@@ -1465,7 +1511,10 @@ yselect = cell2mat(yselect);
 
 if ~isempty(xselect)
     
-    [StationList,station_ind] = createStationList(handles)
+    xselect = unique(xselect);
+    yselect = unique(yselect);
+    
+    [StationList,station_ind] = createStationList(handles);
     
     % have to determine the hard way which points they are
     xdata = cell2mat({handles.originalData(station_ind).X}');
