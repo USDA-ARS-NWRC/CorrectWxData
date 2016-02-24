@@ -22,7 +22,7 @@ function varargout = CorrectWxData(varargin)
 
 % Edit the above text to modify the response to help CorrectWxData
 
-% Last Modified by GUIDE v2.5 01-Feb-2016 15:12:25
+% Last Modified by GUIDE v2.5 24-Feb-2016 14:01:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -115,6 +115,22 @@ handles.precip.noise = 2.5;
 handles.precip.noData = -6999;
 handles.precip.outputInterval = 'same';
 
+% radiation calculations
+handles.radiation.tau = 0.4;
+handles.radiation.scale = 1;
+handles.radiation.zone = 0;
+handles.radiation.slope = 0;
+handles.radiation.aspect = 0;
+handles.radiation.um = 0.28;
+handles.radiation.um2 = 2.8;
+handles.radiation.omega = 0.85;
+handles.radiation.g = 0.3;
+handles.radiation.R0 = 0.5;
+handles.radiation.d = false;
+handles.radiation.cfTimeStep = 1;
+handles.clear_sky = [];
+
+
 % plot the map
 if isfield(config.dem,'data')
     imagesc(config.dem.x, config.dem.y, config.dem.data,...
@@ -136,6 +152,7 @@ for n = 1:length(handles.variables)
 end
 handles.DiffButton.vapor_pressure = 0;
 handles.DiffButton.dew_point_temperature = 0;
+handles.DiffButton.cloud_factor = 0;
 
 handles.splitVariables = struct('variable', [], 'u', [], 'v', []);
 
@@ -263,15 +280,15 @@ if isstruct(results)
         handles.savedData(n).data = [];
     end
     
-    % get the stations that have data for each variables    
+    % get the stations that have data for each variables
     handles.StationVariables = struct([]);
     for k = 1:length(results)
         v = {};
         for n = 1:length(handles.variables)
-           ind = sum(isnan(results(k).data.(handles.variables{n}))) ~= length(results(k).data.date_time);
-           if ind
-              v = [v handles.variables{n}]; 
-           end
+            ind = sum(isnan(results(k).data.(handles.variables{n}))) ~= length(results(k).data.date_time);
+            if ind
+                v = [v handles.variables{n}];
+            end
         end
         handles.StationVariables(1).(results(k).primary_id) = v;
     end
@@ -431,8 +448,7 @@ for v = 1:length(variable_ind)
         end
         
         % plot the saved data
-        if handles.SavedDataCheck.Value && flag
-                isfield(handles.savedData(station_ind(k)).data, vars(v))
+        if handles.SavedDataCheck.Value && flag && isfield(handles.savedData(station_ind(k)).data, vars(v))
             
             pl(3,k) = plot(sp(v), handles.savedData(station_ind(k)).data.date_time, ...
                 handles.savedData(station_ind(k)).data.(vars{v}),'-',...
@@ -470,7 +486,7 @@ for v = 1:length(variable_ind)
     end
     
     xl(v,:) = get(sp(v), 'XLim');
-%     set(sp(v),'YTickLabel',get(sp(v),'YTick'))
+    %     set(sp(v),'YTickLabel',get(sp(v),'YTick'))
     
 end
 
@@ -943,7 +959,7 @@ for n = 1:length(handles.plotAxes)
     for m = 1:length(h.Children)
         
         if strcmp(h.Children(m).Tag, 'workingData')
-        
+            
             % determine the station since they may not line up
             sta_name = h.Children(m).DisplayName;
             stind = strcmp(sta_name, handles.stations);
@@ -964,17 +980,11 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function Menu_Precipitation_Callback(hObject, eventdata, handles)
-% hObject    handle to Menu_Precipitation (see GCBO)
+function Menu_Filtering_Precipitation_Callback(hObject, eventdata, handles)
+% hObject    handle to Menu_Filtering_Precipitation (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
-% --------------------------------------------------------------------
-function Menu_Precipitation_Options_Callback(hObject, eventdata, handles)
-% hObject    handle to Menu_Precipitation_Options (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % get the options
 output = precipitationOptions(handles.precip);
@@ -991,7 +1001,6 @@ if isstruct(output)
 end
 
 guidata(hObject,handles);
-
 
 % --------------------------------------------------------------------
 function Menu_SaveData_Callback(hObject, eventdata, handles)
@@ -1120,8 +1129,8 @@ if ~isempty(handles.plotAxes)
         handles.variableList.String = handles.variables;
         handles.variableList.Value = val;
         
-%         ind = ismember(handles.variables,{'vapor_pressure'});
-%         handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
+        %         ind = ismember(handles.variables,{'vapor_pressure'});
+        %         handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
         
     elseif sum(strcmp('dew_point_temperature',handles.variables(variable_ind))) == 0
         % vapor_pressure is not selected
@@ -1202,12 +1211,12 @@ if ~isempty(handles.plotAxes)
         
         % see if the station has air_temp and relative_humidity and add the
         % vapor_pressure
-%         for n = 1:length(station_ind)
-%             ind = ismember({'air_temp','relative_humidity'}, handles.StationVariables.(handles.stations{station_ind(n)}));
-%             if sum(ind) == 2
-%                 handles.StationVariables.(handles.stations{station_ind(n)}){end + 1} = 'vapor_pressure';
-%             end
-%         end
+        %         for n = 1:length(station_ind)
+        %             ind = ismember({'air_temp','relative_humidity'}, handles.StationVariables.(handles.stations{station_ind(n)}));
+        %             if sum(ind) == 2
+        %                 handles.StationVariables.(handles.stations{station_ind(n)}){end + 1} = 'vapor_pressure';
+        %             end
+        %         end
         
     elseif sum(strcmp('vapor_pressure',handles.variables(variable_ind))) == 0
         % vapor_pressure is not selected
@@ -1435,6 +1444,7 @@ if ok == 1
     
     
     vars = handles.variables(Selection);
+    stations = handles.stations;
     
     for n = 1:length(station_ind)
         
@@ -1442,7 +1452,8 @@ if ok == 1
         ind = zeros(size(handles.workingData(station_ind(n)).data.date_time));
         for v = 1:length(vars)
             % only record values that are at the stations
-            if handles.StationVariables(variable_ind(v),station_ind(n))
+            flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(n)})));
+            if flag
                 ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
             end
         end
@@ -1451,7 +1462,8 @@ if ok == 1
         
         % remove all the NaN values
         for v = 1:length(vars)
-            if handles.StationVariables(variable_ind(v),station_ind(n))
+            flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(n)})));
+            if flag
                 handles.workingData(station_ind(n)).data.(vars{v})(ind) = NaN;
             end
         end
@@ -1511,8 +1523,8 @@ yselect = cell2mat(yselect);
 
 if ~isempty(xselect)
     
-    xselect = unique(xselect);
-    yselect = unique(yselect);
+    %     xselect = unique(xselect);
+    %     yselect = unique(yselect);
     
     [StationList,station_ind] = createStationList(handles);
     
@@ -1552,3 +1564,313 @@ function lassoTool_OffCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(hObject, 'State', 'off')
+
+
+% --------------------------------------------------------------------
+function Menu_Calculate_Radiation_Callback(hObject, eventdata, handles)
+% hObject    handle to Menu_Calculate_Radiation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --------------------------------------------------------------------
+function Menu_Calculate_Radiation_Options_Callback(hObject, eventdata, handles)
+% hObject    handle to Menu_Calculate_Radiation_Options (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Open a dialog to set the options for calculating the clear sky radiation
+
+% get the options
+output = clearSkyOptions(handles.radiation);
+
+if isstruct(output)
+    
+    fnames = fieldnames(output);
+    for f = 1:length(fnames)
+        handles.radiation.(fnames{f}) = output.(fnames{f});
+    end
+    
+end
+
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function Menu_Calculate_Radiation_ClearSky_Callback(hObject, eventdata, handles)
+% hObject    handle to Menu_Calculate_Radiation_ClearSky (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% deteremine how many solar fields are plotted, as only one can be
+% calculated at a time
+
+% get the stations that are showing
+[station_ind,variable_ind] = getStationVariables(handles);
+
+if isempty(handles.plotAxes)
+    errordlg('Nothing plotted, plot only one station and only solar radiation');
+    return
+end
+
+if length(station_ind) > 1
+    errordlg('Can only calculate clear sky radiation one station at a time');
+    return
+end
+
+if length(variable_ind) > 1
+    errordlg('Only solar radiation must be plotted.');
+    return
+end
+
+if strcmp(handles.variables(variable_ind), 'solar_radiation') == 0
+    errordlg('Solar radiation must be plotted');
+    return
+end
+
+if handles.OriginalDataCheck.Value || handles.SavedDataCheck.Value
+    errordlg('Can only calculate clear sky when working data is plotted')
+    return
+end
+
+
+% % check to see if this station has a tau already
+% if isfield(handles.radiation, handles.stations{station_ind})
+%     tau = handle.radiation.tau;
+% else
+%     tau = handles.radiation.(handles.stations{station_ind});
+% end
+
+date_time = handles.workingData(station_ind).data.date_time;
+lat = handles.workingData(station_ind).latitude;
+lon = handles.workingData(station_ind).longitude;
+
+clear_sky = calcClearSky(date_time, lat, lon, handles.radiation);
+handles.clear_sky = clear_sky;
+
+guidata(hObject,handles);
+
+% plot the clear sky on top of the solar
+UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
+
+handles = guidata(hObject);
+
+hold(handles.plotAxes, 'on')
+plot(handles.plotAxes, date_time, clear_sky, 'k--')
+
+
+
+
+% --------------------------------------------------------------------
+function Menu_Calculate_Radiation_CloudFactor_Callback(hObject, eventdata, handles)
+% hObject    handle to Menu_Calculate_Radiation_CloudFactor (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get the stations that are showing
+[station_ind,variable_ind] = getStationVariables(handles);
+
+if isempty(handles.plotAxes)
+    errordlg('Nothing plotted, plot only one station and only solar radiation');
+    return
+end
+
+if length(station_ind) > 1
+    errordlg('Can only calculate clear sky radiation one station at a time');
+    return
+end
+
+if length(variable_ind) > 1
+    errordlg('Only solar radiation must be plotted.');
+    return
+end
+
+if strcmp(handles.variables(variable_ind), 'solar_radiation') == 0
+    errordlg('Solar radiation must be plotted');
+    return
+end
+
+if handles.OriginalDataCheck.Value || handles.SavedDataCheck.Value
+    errordlg('Can only calculate clear sky when working data is plotted')
+    return
+end
+
+% get some values
+date_time = handles.workingData(station_ind).data.date_time;
+clear_sky = handles.clear_sky;
+solar = handles.workingData(station_ind).data.(handles.variables{variable_ind});
+
+if sum(isnan(solar))
+    warndlg('Solar radiation has NaN values and may affect cloud factor calculation')
+end
+
+cfTimeStep = handles.radiation.cfTimeStep;
+
+% go through and get the cloud factor
+% cloud_factor is measured/modeled
+if cfTimeStep == 24
+    % this is a special case when daily integration is desired, so we have
+    % to find the local midnight to midnight values
+    
+    cloud_factor = NaN(size(solar));
+    
+    % convert to local time
+    local_time = TimezoneConvert( date_time, ...
+        handles.config.date_range.data_time_zone, ...
+        handles.config.date_range.local_time_zone);
+    
+    % round and find out the days
+    days = floor(local_time);
+    d = unique(days);
+    
+    for n = 1:length(d)
+        
+        ind = days == d(n);
+        ms = trapz(solar(ind));
+        md = trapz(clear_sky(ind));
+        
+        cloud_factor(ind) = ms/md;
+        
+    end
+    
+    
+elseif cfTimeStep == 1
+    % another special case when it'll just be staight step by step
+    % comparison
+    cloud_factor = solar./clear_sky;
+    
+else
+    % something in between, take from the beginning of the time series and
+    % go through
+    
+    % determine the indicies for the times
+    nvals = ceil(length(solar)/cfTimeStep); % number of values that will be calculated
+    v = 1:nvals;
+    v = repmat(v, cfTimeStep, 1);
+    v = v(:);
+    v = v(1:length(solar));
+    
+    cloud_factor = NaN(size(solar));
+    
+    % loop through and integrate
+%     for n = 1:nvals
+%         ind = v == n;
+%         ms = trapz(solar(ind));
+%         md = trapz(clear_sky(ind));
+%         
+%         if ms == 0 && md == 0
+%            pind = find(v == n-1);
+%            cloud_factor(ind) = cloud_factor(pind(1));
+%         else
+%             cloud_factor(ind) = ms/md;
+%         end
+%     end
+    
+    % do a moving window integration
+    ts = floor(cfTimeStep/2);
+    r = [-ts:ts];
+    if length(r) > cfTimeStep
+        r = r(1:cfTimeStep);
+    end
+    for n = 1:length(cloud_factor)
+       
+        ind = n + r;
+        ind(ind <= 0 | ind > length(cloud_factor)) = [];
+        
+        ms = trapz(solar(ind));
+        md = trapz(clear_sky(ind));
+        
+        if md == 0
+            % if it's night time
+            pind = n-1;
+            pind(pind <= 0 | pind > length(cloud_factor)) = [];
+            if isempty(pind)
+                cloud_factor(n) = NaN;
+            else
+                cloud_factor(n) = cloud_factor(pind(1));
+            end
+        else
+            cloud_factor(n) = ms/md;
+        end
+
+        
+    end
+
+end
+
+% clean up a little bit
+cloud_factor(isinf(cloud_factor)) = 0;
+cloud_factor(cloud_factor > 1) = 1;
+cloud_factor(cloud_factor < 0) = 0;
+
+% check to see if the cloud factor is variable
+if ~strcmp('cloud_factor',handles.variables)
+    % have to create a new working data and add to the  variable
+    % to the variable list
+    
+    for n = 1:length(handles.stations)
+        handles.originalData(n).data.cloud_factor = ...
+            NaN(size( handles.workingData(n).data.date_time));
+        handles.workingData(n).data.cloud_factor = ...
+            NaN(size( handles.workingData(n).data.date_time));
+    end
+    
+    % add to the variable to the variable list
+    handles.variables = [handles.variables 'cloud_factor'];
+    val = handles.variableList.Value;
+    val(end+1) = length(handles.variables);
+    handles.variableList.String = handles.variables;
+    handles.variableList.Value = val;
+    
+    %         ind = ismember(handles.variables,{'vapor_pressure'});
+    %         handles.StationVariables(end+1,:) = handles.StationVariables(ind,:);
+    
+elseif sum(strcmp('cloud_factor',handles.variables(variable_ind))) == 0
+    % cloud_factor is not selected
+    val = handles.variableList.Value;
+    val(end+1) = find(strcmp(handles.variables,'cloud_factor'));
+    handles.variableList.Value = sort(val);
+    
+end
+
+% add the cloud_factor to the StationVariables if not already there
+if any(strcmp('cloud_factor', handles.StationVariables.(handles.stations{station_ind}))) == 0
+    handles.StationVariables.(handles.stations{station_ind}){end + 1} = 'cloud_factor';
+end
+
+% add the cloud_factor to the station
+handles.originalData(station_ind).data.cloud_factor = cloud_factor;
+handles.workingData(station_ind).data.cloud_factor = cloud_factor;
+
+% ensure that workingData is selected
+handles.WorkingDataCheck.Value = 1;
+
+guidata(hObject,handles);
+
+% update the plot
+UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
+
+
+% --------------------------------------------------------------------
+function clearSkyOptionsPush_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to clearSkyOptionsPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+Menu_Calculate_Radiation_Options_Callback(hObject, eventdata, handles)
+
+
+% --------------------------------------------------------------------
+function clearSkyPush_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to clearSkyPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+Menu_Calculate_Radiation_ClearSky_Callback(hObject, eventdata, handles)
+
+
+% --------------------------------------------------------------------
+function cloudFactorPush_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to cloudFactorPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+Menu_Calculate_Radiation_CloudFactor_Callback(hObject, eventdata, handles)

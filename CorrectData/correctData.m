@@ -21,11 +21,11 @@ for k = 1:length(station_ind)
         
         %%% 1. CORRECT FOR MIN AND MAX VALUES %%%
         if ~isnan(handles.MinValue)
-            data(data < handles.MinValue) = NaN;
+            data(data < handles.MinValue) = handles.MinValue;
         end
         
         if ~isnan(handles.MaxValue)
-            data(data > handles.MaxValue) = NaN;
+            data(data > handles.MaxValue) = handles.MaxValue;
         end
         
         
