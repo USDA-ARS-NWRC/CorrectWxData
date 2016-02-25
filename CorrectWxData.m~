@@ -193,23 +193,17 @@ function variableList_Callback(hObject, eventdata, handles)
 
 handles = guidata(hObject);
 
-[station_ind,variable_ind] = getStationVariables(handles);
-
 % get the selected variable
 val = get(hObject,'Value');
 handles.variable_ind = val;
 
 % get the stations
-sta = handles.stations(station_ind);
+sta = handles.StationList.Value;
 
 % update the station list
-% handles.StationList.Value = 1;
+handles.StationList.Value = 1;
 StationList = createStationList(handles);
 set(handles.StationList,'String',StationList);
-
-% try to set the same stations if possible
-ind = find(ismember(StationList, sta));
-handles.StationList.Value = ind;
 
 % plot the stations on the map
 handles = UpdateMap(handles);
