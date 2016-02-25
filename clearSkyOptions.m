@@ -22,7 +22,7 @@ function varargout = clearSkyOptions(varargin)
 
 % Edit the above text to modify the response to help clearSkyOptions
 
-% Last Modified by GUIDE v2.5 24-Feb-2016 14:35:08
+% Last Modified by GUIDE v2.5 25-Feb-2016 09:08:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,11 +63,11 @@ if ~isempty(varargin)
     for f = 1:length(fnames)
         handles.(fnames{f}) = input.(fnames{f});
         
-        if ~strcmp(fnames{f}, 'd')
+        if ~strcmp(fnames{f}, 'd') && ~strcmp(fnames{f}, 'keep_plot')
             v = [fnames{f} 'Input'];
             set(handles.(v),'String',handles.(fnames{f}))
         else
-            v = 'dCheck';
+            v = [fnames{f} 'Check'];
             set(handles.(v),'Value',handles.(fnames{f}))
         end
     end
@@ -86,6 +86,7 @@ else
     handles.R0 = 0.5;
     handles.d = 0;
     handles.cfTimeStep = 1;
+    handles.keep_plot = 0;
 end
 
 % Update handles structure
@@ -458,6 +459,7 @@ options.omega = handles.omega;
 options.g = handles.g;
 options.R0 = handles.R0;
 options.d = handles.d;
+options.keep_plot = handles.keep_plot;
 options.cfTimeStep = handles.cfTimeStep;
 
 handles.output = options;
@@ -499,15 +501,16 @@ handles.g = 0.3;
 handles.R0 = 0.5;
 handles.d = 0;
 handles.cfTimeStep = 1;
+handles.keep_plot = 0;
 
-fnames = {'tau','scale','zone','slope','aspect','um','um2','omega','g','R0','d','cfTimeStep'};
+fnames = {'tau','scale','zone','slope','aspect','um','um2','omega','g','R0','d','cfTimeStep','keep_plot'};
 
 for f = 1:length(fnames)
-    if ~strcmp(fnames{f}, 'd')
+    if ~strcmp(fnames{f}, 'd') && ~strcmp(fnames{f}, 'keep_plot')
         v = [fnames{f} 'Input'];
         set(handles.(v),'String',handles.(fnames{f}))
     else
-        v = 'dCheck';
+        v = [fnames{f} 'Check'];
         set(handles.(v),'Value',handles.(fnames{f}))
     end
 end
@@ -560,3 +563,17 @@ function cfTimeStepInput_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in keep_plotCheck.
+function keep_plotCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to keep_plotCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of keep_plotCheck
+
+val = get(hObject,'Value');
+handles.keep_plot = val;
+
+guidata(hObject,handles);

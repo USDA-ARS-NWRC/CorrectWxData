@@ -111,6 +111,7 @@ end
 %%% parse the returned data from the database %%%
 waitbar(2/3, h, 'Organizing data ...');
 
+date_time = datenum(data.date_time);
 vd = ['date_time', v]';
 
 staind = zeros(size(sta));
@@ -124,7 +125,7 @@ for n = 1:length(sta)
     if sum(ind) > 0
         
         % parse out the data to metadata structure
-        dt = datenum(data.date_time(ind));
+        dt = date_time(ind);
         timeIdx = ismember(times,dt);
         d.date_time = times;
         for k = 1:length(v)

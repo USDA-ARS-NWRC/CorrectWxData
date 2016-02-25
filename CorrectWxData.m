@@ -128,6 +128,7 @@ handles.radiation.g = 0.3;
 handles.radiation.R0 = 0.5;
 handles.radiation.d = false;
 handles.radiation.cfTimeStep = 1;
+handles.radiation.keep_plot = 0;
 handles.clear_sky = [];
 
 
@@ -381,6 +382,11 @@ vars = handles.variables(variable_ind);
 %     value(length(variable_ind),1) = 0;
 % end
 
+% check to see if radiation is plotted and clear sky is desired
+clear_flag = false;
+if sum(strcmp('solar_radiation', vars)) && handles.radiation.keep_plot
+    clear_flag = true;
+end
 
 % remove and create the axes
 delete(handles.plotPanel.Children)
@@ -423,6 +429,12 @@ for v = 1:length(variable_ind)
     nStations = length(station_ind);
     colors = lines(nStations);
     set(gca, 'ColorOrder', colors)
+    
+    % clear sky
+    if clear_flag && strcmp('solar_radiation', vars{v})
+       plot(sp(v), handles.workingData(station_ind(1)).data.date_time, ...
+           handles.clear_sky, 'k--');
+    end
     
     % pull out all stations with data
     pl = NaN(3,length(station_ind));
@@ -1648,13 +1660,16 @@ handles.clear_sky = clear_sky;
 
 guidata(hObject,handles);
 
-% plot the clear sky on top of the solar
+% plot the clear sky below the solar, use the UpdatePlot function
+old_value = handles.radiation.keep_plot;
+handles.radiation.keep_plot = 1;
 UpdatePlot_Callback(handles.UpdatePlot, eventdata, handles);
 
+% reset to the users value
 handles = guidata(hObject);
+handles.radiation.keep_plot = old_value;
+guidata(hObject,handles);
 
-hold(handles.plotAxes, 'on')
-plot(handles.plotAxes, date_time, clear_sky, 'k--')
 
 
 
