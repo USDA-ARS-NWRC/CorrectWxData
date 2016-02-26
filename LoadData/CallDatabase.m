@@ -7,6 +7,7 @@ function results = CallDatabase(handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 results = 0;
+nround = 6; % ensure that the times are similar to the second, don't care after that
 
 %%% connect to the database %%%
 config = handles.config;
@@ -35,6 +36,8 @@ end
 dateFrom = datenum(handles.config.date_range.start);   % parse the users date
 dateTo = datenum(handles.config.date_range.end);
 times = [dateFrom:1/24:dateTo]';
+timeStr = cellstr(datestr(times, 'yyyy-mm-dd HH:MM:SS'));
+
 
 dateFrom = datestr(dateFrom,'yyyy-mm-dd HH:MM:SS');   % format to ISO
 dateTo = datestr(dateTo,'yyyy-mm-dd HH:MM:SS');
@@ -111,7 +114,10 @@ end
 %%% parse the returned data from the database %%%
 waitbar(2/3, h, 'Organizing data ...');
 
-date_time = datenum(data.date_time);
+% date_time = datenum(data.date_time);
+date_time = char(data.date_time);
+date_time = cellstr(date_time(:,1:19));  % remove the stupid .0 that Matlab adds
+
 vd = ['date_time', v]';
 
 staind = zeros(size(sta));
@@ -126,7 +132,7 @@ for n = 1:length(sta)
         
         % parse out the data to metadata structure
         dt = date_time(ind);
-        timeIdx = ismember(times,dt);
+        timeIdx = ismember(timeStr,dt);
         d.date_time = times;
         for k = 1:length(v)
             d.(v{k}) = NaN(length(times),1);
