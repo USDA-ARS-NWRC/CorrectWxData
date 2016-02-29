@@ -114,39 +114,8 @@ end
 %%% parse the returned data from the database %%%
 waitbar(2/3, h, 'Organizing data ...');
 
-% date_time = datenum(data.date_time);
-date_time = char(data.date_time);
-date_time = cellstr(date_time(:,1:19));  % remove the stupid .0 that Matlab adds
+metadata = organizeData(data, times, metadata);
 
-vd = ['date_time', v]';
-
-staind = zeros(size(sta));
-for n = 1:length(sta)
-    
-    d = cell2struct(cell(size(vd)), vd, 1);
-    
-    % get the station
-    ind = strcmp(sta{n}, data.station_id);
-    
-    if sum(ind) > 0
-        
-        % parse out the data to metadata structure
-        dt = date_time(ind);
-        timeIdx = ismember(timeStr,dt);
-        d.date_time = times;
-        for k = 1:length(v)
-            d.(v{k}) = NaN(length(times),1);
-            d.(v{k})(timeIdx) = data.(v{k})(ind);
-        end
-        
-        metadata(n).data = d;
-    else
-        staind(n) = 1;
-    end
-    
-    waitbar(n/length(sta), h);
-end
-metadata(logical(staind)) = [];
 
 %%% split data into componenents if necessary
 
@@ -201,28 +170,6 @@ close(curs); close(c);
 
 
 
-function metadata = organizeMetadata(data)
-% 20151209 Scott Havens
-%
-% The structure returned by the db is one sturcture with a cell array of
-% all the values.  I want this to be the other way around
 
-f = fieldnames(data);
-N = length(data.primary_id);
-
-metadata = cell2struct(cell(size(f)), f, 1);
-
-for n = 1:N
-    for k = 1:length(f)
-        if iscell(data.(f{k}))
-            metadata(n).(f{k}) = data.(f{k}){n};
-        else
-            metadata(n).(f{k}) = data.(f{k})(n);
-        end
-    end
-    [x,y] = deg2utm(metadata(n).latitude, metadata(n).longitude);
-    metadata(n).X = x;
-    metadata(n).Y = y;
-end
 
 
