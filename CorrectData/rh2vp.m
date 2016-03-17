@@ -13,9 +13,12 @@ F1 = [Ta RH]; % matrix output
 save('F1','F1','-ascii') % put Ta and RH into a file for input
 
 % Run C-code:
-[~,VP] = system('rh2vp -c < F1'); % convert air temp and RH to vapor pressure
+[status,VP] = system('rh2vp -c < F1'); % convert air temp and RH to vapor pressure
 %the -c option clips vapor pressure to be less than the saturation vapor pressure
 
+if status ~= 0
+    errordlg('Error converting to vapor_pressure')
+end
 system('rm F1');
 
 if ischar(VP)

@@ -12,8 +12,12 @@ F1 = ea; % matrix output
 save F1 F1 '-ascii' % save the input vapor pressure as a text file
 
 % Run C-code:
-[~,result] = system('dewpt < F1');
+[status,result] = system('dewpt < F1');
 system('rm F1');
+
+if status ~= 0
+    errordlg('Error calculating dew point')
+end
 
 DPT = str2num(result);
 

@@ -1169,8 +1169,10 @@ if ~isempty(handles.plotAxes)
             vp = handles.(f{k})(station_ind(n)).data.vapor_pressure;
             
             if sum(isnan(vp)) ~= length(vp)
+                ind = isnan(vp);
+                vp(ind) = 300;
                 dpt = dewpt(vp);
-                dpt(isnan(vp)) = NaN;
+                dpt(ind) = NaN;
                 handles.(f{k})(station_ind(n)).data.dew_point_temperature = dpt;
                 
                 % add the dew_point_temperature to the StationVariables if not

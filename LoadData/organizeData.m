@@ -11,13 +11,13 @@ end
 sta = {metadata.primary_id};
 
 % date_time = datenum(data.date_time);
-date_time = char(data.date_time);
-date_time = cellstr(date_time(:,1:19));  % remove the stupid .0 that Matlab adds
+date_time = data.date_time_str;
+% date_time = cellstr(date_time(:,1:19));  % remove the stupid .0 that Matlab adds
 
 timeStr = cellstr(datestr(times, 'yyyy-mm-dd HH:MM:SS'));
 
 v = fieldnames(data);
-ind = ismember(v, {'station_id', 'date_time'});
+ind = ismember(v, {'station_id', 'date_time', 'date_time_str'});
 v(ind) = [];
 
 vd = ['date_time'; v(:)];
@@ -32,16 +32,21 @@ for n = 1:length(sta)
     
     if sum(ind) > 0
         
-        % parse out the data to metadata structure
-        dt = date_time(ind);
-        timeIdx = ismember(timeStr,dt);
-        d.date_time = times;
-        for k = 1:length(v)
-            d.(v{k}) = NaN(length(times),1);
-            d.(v{k})(timeIdx) = data.(v{k})(ind);
+        try
+            % parse out the data to metadata structure
+            dt = date_time(ind);
+            timeIdx = ismember(timeStr,dt);
+            d.date_time = times;
+            for k = 1:length(v)
+                d.(v{k}) = NaN(length(times),1);
+                d.(v{k})(timeIdx) = data.(v{k})(ind);
+            end
+            
+            metadata(n).data = d;
+        catch ME
+            warndlg(sprintf('Error loading station %s',sta{n}));
+            staind(n) = 1;
         end
-        
-        metadata(n).data = d;
     else
         staind(n) = 1;
     end
