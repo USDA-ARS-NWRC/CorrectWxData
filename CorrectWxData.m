@@ -1759,9 +1759,74 @@ if cfTimeStep == 24
     
     
 elseif cfTimeStep == 1
-    % another special case when it'll just be staight step by step
+    % another special case when it'll just be straight step by step
     % comparison
-    cloud_factor = solar./clear_sky;
+    clear_sky(clear_sky<=0) = NaN; %Flag nighttime values as NaN
+    cloud_factor = solar./clear_sky; %Find ratios of measured to modeled for daytime hours
+    cloud_factor(cloud_factor>1)=1;  %Cap ratios at 1.0 to remove reflection spikes
+    %Flag the last measurements of each day as NaN:
+    for ii=1:length(cloud_factor)
+        if (ii+1)>length(cloud_factor)
+            break
+        end
+        if isnan(cloud_factor(ii))==0 && isnan(cloud_factor(ii+1))==1
+            cloud_factor(ii)=NaN;
+        end
+    end
+    %Flag the first measurements of each day as NaN:
+    for jj=length(cloud_factor):-1:1
+        if (jj-1)==0
+            break
+        end
+        if isnan(cloud_factor(jj))==0 && isnan(cloud_factor(jj-1))==1
+            cloud_factor(jj)=NaN;
+        end
+    end
+    ld=0; %Define initial "Last Daylight" value as zero.
+    ldh=0; %Define initial "Last Daylight Hour" value as zero.
+    output=zeros(length(cloud_factor),1); %Initialize output for speed
+    for ii=1:length(cloud_factor)
+        if jj>length(cloud_factor)
+            break
+        end
+        %Determine if starting time step is at night:
+        if isnan(cloud_factor(ii))==1 && ld==0
+            %         if sum(isnan(cloud_atten(:)))==length(cloud_atten)
+            %             break
+            %         end
+            jj=ii;
+            %Look at the next hour:
+            while isnan(cloud_factor(jj))==1 && ld==0
+                if jj==length(cloud_factor)
+                    break
+                end
+                jj=jj+1;
+            end
+            cloud_factor(ii)=cloud_factor(jj);
+            %j=0;
+            %Interpolation step between sunset and sunrise cloud covers:
+        elseif isnan(cloud_factor(ii))==1 && ld>0
+            jj=ii;
+            while isnan(cloud_factor(jj))==1 && jj<length(cloud_factor)
+                jj=jj+1;
+            end
+            if isnan(cloud_factor(jj))==0
+                cloud_factor(ii)=(cloud_factor(jj)-ld)/(jj-ldh)*(ii-ldh)+ld;
+                %This line printed to the command window is for diagnostics:
+                %fprintf('i=%d j=%d cloud_atten[%d]=%.4f last_daylight=%.4f last_daylight_hour=%d cloud_atten[%d]=%.4f\n',...
+                %i,j,j,cloud_atten(j),ld,ldh,i,cloud_atten(i));
+            else
+                cloud_factor(ii)=ld;
+            end
+            %Otherwise, do nothing to cloud ratio:
+        else
+            ld=cloud_factor(ii);
+            ldh=ii;
+        end
+        %Store output into a new array:
+        output(ii)=cloud_factor(ii);
+    end
+    cloud_factor = output;
     
 else
     % something in between, take from the beginning of the time series and
