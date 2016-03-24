@@ -107,7 +107,7 @@ curs = fetch(curs);
 data = curs.Data;
 
 if ~isstruct(data)
-    errordlg(data{1})
+    errordlg(curs.Message)
     return;
 end
 

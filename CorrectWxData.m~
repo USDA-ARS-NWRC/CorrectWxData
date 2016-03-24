@@ -1747,7 +1747,7 @@ if cfTimeStep == 24
     days = floor(local_time);
     d = unique(days);
     
-    [fill,fill_value] = deal(zeros(size(cloud_factor)));
+    fill = zeros(size(cloud_factor));
     
     for n = 1:length(d)
         
@@ -1759,17 +1759,13 @@ if cfTimeStep == 24
         
         if sum(ind) < 5 && isnan(ms/md)
             fill(ind) = 1;
-            fill_value(ind) = n+1;
         end
         
     end
     
     % fill in those that are flagged
     ind = find(fill);
-    for n = 1:length(ind)
-        dyind = find(days == d(fill_value(ind(n))));
-        cloud_factor(ind(n)) = cloud_factor(dyind(1));
-    end
+    
     
     
 elseif cfTimeStep == 1
