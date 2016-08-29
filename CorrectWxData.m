@@ -114,6 +114,7 @@ handles.precip.recharge = 25;
 handles.precip.noise = 2.5;
 handles.precip.noData = -6999;
 handles.precip.outputInterval = 'same';
+handles.precip.interp = 0;
 
 % radiation calculations
 handles.radiation.tau = 0.4;
@@ -455,7 +456,7 @@ for v = 1:length(variable_ind)
         % plot the original data
         if handles.OriginalDataCheck.Value && flag
             pl(1,k) = plot(sp(v), handles.originalData(station_ind(k)).data.date_time, ...
-                handles.originalData(station_ind(k)).data.(vars{v}),'--',...
+                handles.originalData(station_ind(k)).data.(vars{v}),'o--',...
                 'color',colors(k,:));
             set(pl(1,k), 'Tag', 'originalData')
         end
@@ -665,6 +666,19 @@ if get(handles.PrecipCorrectionCheck,'Value')
     end
     date = handles.workingData(station_ind(1)).data.date_time;
     
+    % if we need to linear interpolate missing data
+    if handles.precip.interp
+        for n = 1:length(station_ind)
+            ind = ~isnan(CumPPT(:,n));
+            d = date(ind);
+            
+            c = interp1(d, CumPPT(ind,n), date, 'linear');
+            CumPPT(:,n) = c;
+        end
+    end
+    
+    
+    
     CumPPT(isnan(CumPPT)) = handles.precip.noData;
     M = size(CumPPT,2);
     
@@ -673,6 +687,8 @@ if get(handles.PrecipCorrectionCheck,'Value')
     noise = handles.precip.noise*ones(1,M);
     noData = handles.precip.noData*ones(1,M);
     outputInterval = handles.precip.outputInterval;
+    
+    
     
     % correct the data and store
     precip_corr = correctPrecipitation(date,CumPPT,bucketDump,recharge,noise,noData,outputInterval);
@@ -683,7 +699,7 @@ if get(handles.PrecipCorrectionCheck,'Value')
     
 else
     
-    handles = correctData(handles, variable);
+    handles = correctData(handles, variable);4
 end
 
 guidata(hObject,handles);
@@ -1018,6 +1034,7 @@ if isstruct(output)
     handles.precip.noise = output.noise;
     handles.precip.noData = output.noData;
     handles.precip.outputInterval = 'same';
+    handles.precip.interp = output.interp;
     
 end
 

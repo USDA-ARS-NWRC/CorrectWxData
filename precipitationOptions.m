@@ -22,7 +22,7 @@ function varargout = precipitationOptions(varargin)
 
 % Edit the above text to modify the response to help precipitationOptions
 
-% Last Modified by GUIDE v2.5 20-Mar-2015 14:51:51
+% Last Modified by GUIDE v2.5 29-Aug-2016 12:46:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,12 +61,14 @@ if ~isempty(varargin)
     handles.recharge = input.recharge;
     handles.noise = input.noise;
     handles.noData = input.noData;
+    handles.interp = input.interp;
     
     % set the values
     set(handles.bucketDumpInput,'String',handles.bucketDump)
     set(handles.rechargeInput,'String',handles.recharge)
     set(handles.noiseInput,'String',handles.noise)
     set(handles.noDataInput,'Value',handles.noData)
+    set(handles.linearInterp,'Value',handles.interp)
         
 else
     % set the defaults
@@ -74,6 +76,7 @@ else
     handles.recharge = 25;
     handles.noise = 2.5;
     handles.noData = -6999;
+    handles.interp = 0;
 end
 
 % Update handles structure
@@ -232,6 +235,7 @@ options.bucketDump = handles.bucketDump;
 options.recharge = handles.recharge;
 options.noise = handles.noise;
 options.noData = handles.noData;
+options.interp = handles.interp;
 handles.output = options;
 
 guidata(hObject,handles);
@@ -263,3 +267,19 @@ else
     % The GUI is no longer waiting, just close it
     delete(hObject);
 end
+
+
+% --- Executes on button press in linearInterp.
+function linearInterp_Callback(hObject, eventdata, handles)
+% hObject    handle to linearInterp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of linearInterp
+
+handles.interp = get(hObject, 'Value');
+
+guidata(hObject,handles);
+
+
+

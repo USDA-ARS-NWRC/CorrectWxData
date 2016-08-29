@@ -114,7 +114,7 @@ for m = 1:M
                 % There is no bucket dump during the time preiod
                 % Distribute the difference among the cells
                 for j = p+1:n-1
-                    CumPPT(j,m) = CumPPT(p,m) + (j + p) * (CumPPT(n,m) - CumPPT(p,m)) / (n - p);
+                    CumPPT(j,m) = CumPPT(p,m) + (j - p) * (CumPPT(n,m) - CumPPT(p,m)) / (n - p);
                 end
             end
             
