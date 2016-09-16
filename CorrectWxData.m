@@ -1656,10 +1656,10 @@ if length(station_ind) > 1
     return
 end
 
-if length(variable_ind) > 1
-    errordlg('Only solar radiation must be plotted.');
-    return
-end
+% if length(variable_ind) > 1
+%     errordlg('Only solar radiation must be plotted.');
+%     return
+% end
 
 if strcmp(handles.variables(variable_ind), 'solar_radiation') == 0
     errordlg('Solar radiation must be plotted');
@@ -1721,10 +1721,10 @@ if length(station_ind) > 1
     return
 end
 
-if length(variable_ind) > 1
-    errordlg('Only solar radiation must be plotted.');
-    return
-end
+% if length(variable_ind) > 1
+%     errordlg('Only solar radiation must be plotted.');
+%     return
+% end
 
 if strcmp(handles.variables(variable_ind), 'solar_radiation') == 0
     errordlg('Solar radiation must be plotted');
@@ -1739,7 +1739,9 @@ end
 % get some values
 date_time = handles.workingData(station_ind).data.date_time;
 clear_sky = handles.clear_sky;
-solar = handles.workingData(station_ind).data.(handles.variables{variable_ind});
+
+ind = ismember({handles.variables{variable_ind}}, 'solar_radiation');
+solar = handles.workingData(station_ind).data.solar_radiation;
 
 if sum(isnan(solar))
     warndlg('Solar radiation has NaN values and may affect cloud factor calculation')
