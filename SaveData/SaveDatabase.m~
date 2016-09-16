@@ -114,8 +114,10 @@ h = waitbar(0,'Saving data',...
     'setappdata(gcbf,''canceling'',1)');
 setappdata(h,'canceling',0)
 
-
-
+waitbar(0, h, sprintf('%s -- %i of %i', station_id, n, length(data)));
+if getappdata(h,'canceling')
+    break
+end
 
 for n = 1:length(data)
     
@@ -123,11 +125,6 @@ for n = 1:length(data)
     station_id = data(n).primary_id;
     dates = data(n).data.date_time;
     N = length(dates);
-    
-    waitbar(n/length(data), h, sprintf('%s -- %i of %i', station_id, n, length(data)));
-    if getappdata(h,'canceling')
-        break
-    end
     
     vars = fieldnames(data(n).data);   % saved variables
     vars(strcmp('date_time',vars)) = [];
@@ -177,6 +174,7 @@ for n = 1:length(data)
         error('Could not add data to database for %s', station_id);
     end
     
+    waitbar(n/length(data), h)
     
 end
 
