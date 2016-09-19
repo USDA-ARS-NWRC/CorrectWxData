@@ -510,6 +510,11 @@ for v = 1:length(variable_ind)
     xl(v,:) = get(sp(v), 'XLim');
     %     set(sp(v),'YTickLabel',get(sp(v),'YTick'))
     
+    
+    if strcmp(vars{v}, 'air_temp')
+        plot(sp(v), xl(v,:), [0 0], 'k--')
+    end
+    
 end
 
 linkaxes(sp,'x')
