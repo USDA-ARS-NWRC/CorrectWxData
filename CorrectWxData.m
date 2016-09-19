@@ -1479,11 +1479,11 @@ function joinVariables_ClickedCallback(hObject, eventdata, handles)
 if ok == 1
     
     % turn off the brush if on
-    flag = 0;
+    brush_flag = 0;
     if strcmp(handles.brushTool.State, 'on')
         brushTool_OffCallback(handles.brushTool, eventdata, handles);
         handles = guidata(hObject); % need to reload
-        flag = 1;
+        brush_flag = 1;
     end
     
     % get the stations that are showing
@@ -1509,7 +1509,8 @@ if ok == 1
         ind = zeros(size(handles.workingData(station_ind(n)).data.date_time));
         for v = 1:length(vars)
             % only record values that are at the stations
-            flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(n)})));
+            flag = any(strcmp(stations{station_ind(n)}, handles.StationVariables.(vars{v}))); %faster
+%             flag = ismember(stations{station_ind(n)}, handles.StationVariables.(vars{v}));      %cleaner
             if flag
                 ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
             end
@@ -1519,7 +1520,7 @@ if ok == 1
         
         % remove all the NaN values
         for v = 1:length(vars)
-            flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(n)})));
+            flag = any(strcmp(stations{station_ind(n)}, handles.StationVariables.(vars{v})));
             if flag
                 handles.workingData(station_ind(n)).data.(vars{v})(ind) = NaN;
             end
@@ -1530,7 +1531,7 @@ if ok == 1
     guidata(hObject,handles);
     
     % turn the bursh back on if it was
-    if flag
+    if brush_flag
         brushTool_OnCallback(handles.brushTool, eventdata, handles);
     end
     
@@ -1973,8 +1974,12 @@ elseif sum(strcmp('cloud_factor',handles.variables(variable_ind))) == 0
 end
 
 % add the cloud_factor to the StationVariables if not already there
-if any(strcmp('cloud_factor', handles.StationVariables.(handles.stations{station_ind}))) == 0
-    handles.StationVariables.(handles.stations{station_ind}){end + 1} = 'cloud_factor';
+% if any(strcmp('cloud_factor', handles.StationVariables.(handles.stations{station_ind}))) == 0
+%     handles.StationVariables.(handles.stations{station_ind}){end + 1} = 'cloud_factor';
+% end
+
+if ~any(strcmp('cloud_factor', fieldnames(handles.StationVariables)))
+    handles.StationVariables.cloud_factor = cell(0);
 end
 
 % add the cloud_factor to the station
