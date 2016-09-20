@@ -442,8 +442,8 @@ for v = 1:length(variable_ind)
     
     % clear sky
     if clear_flag && strcmp('solar_radiation', vars{v})
-        plot(sp(v), handles.workingData(station_ind(1)).data.date_time, ...
-            handles.clear_sky, 'k--');
+       plot(sp(v), handles.workingData(station_ind(1)).data.date_time, ...
+           handles.clear_sky, 'k--');
     end
     
     % pull out all stations with data
@@ -452,7 +452,7 @@ for v = 1:length(variable_ind)
         
         % check to see if the station has any data to plot
         flag = ismember(stations{station_ind(k)}, handles.StationVariables.(vars{v}));
-        %         flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(k)})));
+%         flag = any(strcmp(vars{v}, handles.StationVariables.(stations{station_ind(k)})));
         
         % plot the original data
         if handles.OriginalDataCheck.Value && flag
@@ -1395,13 +1395,13 @@ if ok == 1
         % add the station variables
         handles.StationVariables.(c{1}) = handles.StationVariables.(var);
         handles.StationVariables.(c{2}) = handles.StationVariables.(var);
-        %         for n = 1:length(handles.stations)
-        %             ind = any(ismember(handles.StationVariables.(handles.stations{n}), var));
-        %             if ind
-        %                 handles.StationVariables.(handles.stations{n}){end+1} = c{1};
-        %                 handles.StationVariables.(handles.stations{n}){end+1} = c{2};
-        %             end
-        %         end
+%         for n = 1:length(handles.stations)
+%             ind = any(ismember(handles.StationVariables.(handles.stations{n}), var));
+%             if ind
+%                 handles.StationVariables.(handles.stations{n}){end+1} = c{1};
+%                 handles.StationVariables.(handles.stations{n}){end+1} = c{2};
+%             end
+%         end
         
         % add to the diff button tracker
         handles.DiffButton.(c{1}) = 0;
@@ -1515,7 +1515,7 @@ if ok == 1
         for v = 1:length(vars)
             % only record values that are at the stations
             flag = any(strcmp(stations{station_ind(n)}, handles.StationVariables.(vars{v}))); %faster
-            %             flag = ismember(stations{station_ind(n)}, handles.StationVariables.(vars{v}));      %cleaner
+%             flag = ismember(stations{station_ind(n)}, handles.StationVariables.(vars{v}));      %cleaner
             if flag
                 ind = ind + isnan(handles.workingData(station_ind(n)).data.(vars{v}));
             end
@@ -1898,18 +1898,18 @@ else
     cloud_factor = NaN(size(solar));
     
     % loop through and integrate
-    %     for n = 1:nvals
-    %         ind = v == n;
-    %         ms = trapz(solar(ind));
-    %         md = trapz(clear_sky(ind));
-    %
-    %         if ms == 0 && md == 0
-    %            pind = find(v == n-1);
-    %            cloud_factor(ind) = cloud_factor(pind(1));
-    %         else
-    %             cloud_factor(ind) = ms/md;
-    %         end
-    %     end
+%     for n = 1:nvals
+%         ind = v == n;
+%         ms = trapz(solar(ind));
+%         md = trapz(clear_sky(ind));
+%         
+%         if ms == 0 && md == 0
+%            pind = find(v == n-1);
+%            cloud_factor(ind) = cloud_factor(pind(1));
+%         else
+%             cloud_factor(ind) = ms/md;
+%         end
+%     end
     
     % do a moving window integration
     ts = floor(cfTimeStep/2);
@@ -1918,7 +1918,7 @@ else
         r = r(1:cfTimeStep);
     end
     for n = 1:length(cloud_factor)
-        
+       
         ind = n + r;
         ind(ind <= 0 | ind > length(cloud_factor)) = [];
         
@@ -1937,10 +1937,10 @@ else
         else
             cloud_factor(n) = ms/md;
         end
-        
+
         
     end
-    
+
 end
 
 % clean up a little bit
@@ -2041,15 +2041,7 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 
 
 
-switch eventdata.Key
-    case 's'
-        Menu_Calculate_Radiation_Options_Callback(hObject, eventdata, handles)
-    case 't'
-        Menu_Calculate_Radiation_ClearSky_Callback(hObject, eventdata, handles);
-    case 'f'
-        Menu_Calculate_Radiation_CloudFactor_Callback(hObject, eventdata, handles)
-        
-end
+
 
 
 

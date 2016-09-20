@@ -22,7 +22,7 @@ function varargout = clearSkyOptions(varargin)
 
 % Edit the above text to modify the response to help clearSkyOptions
 
-% Last Modified by GUIDE v2.5 25-Feb-2016 09:08:17
+% Last Modified by GUIDE v2.5 20-Sep-2016 15:02:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -577,3 +577,24 @@ val = get(hObject,'Value');
 handles.keep_plot = val;
 
 guidata(hObject,handles);
+
+
+% --- Executes on key press with focus on figure1 or any of its controls.
+function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+switch eventdata.Key
+    case 'return'
+        doneButton_Callback(hObject, eventdata, handles);
+    case 'escape'
+        cancelButton_Callback(hObject, eventdata, handles);
+        
+end
+
+
