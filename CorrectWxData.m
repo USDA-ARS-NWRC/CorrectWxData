@@ -966,19 +966,19 @@ function brushTool_OnCallback(hObject, eventdata, handles)
 
 display('brush on')
 
-if handles.OriginalDataCheck.Value || handles.SavedDataCheck.Value
+% if handles.OriginalDataCheck.Value || handles.SavedDataCheck.Value
+%     
+%     hObject.State = 'off';
+%     errordlg('Cannot use brush when original or saved data is plotted')
+%     
+% else
+
+% turn on the brush tool
+h = brush(handles.figure1);
+set(h, 'Enable', 'on')
+handles.brushObject = h;
     
-    hObject.State = 'off';
-    errordlg('Cannot use brush when original or saved data is plotted')
-    
-else
-    
-    % turn on the brush tool
-    h = brush(handles.figure1);
-    set(h, 'Enable', 'on')
-    handles.brushObject = h;
-    
-end
+% end
 
 % save the data
 guidata(hObject,handles);
