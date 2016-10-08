@@ -1331,7 +1331,13 @@ function [dtimes,sData,stations,vars] = minimizeData(data, stations, vars)
 
 
 % put all the saved data into a big matrix
-dtimes = data(1).data.date_time;
+for n = 1:length(data)
+    if ~isempty(data(n).data)
+        dtimes = data(n).data.date_time;
+        break
+    end
+end
+
 sData = NaN(length(dtimes), length(data), length(vars));
 for v = 1:length(vars)
     for s = 1:length(data)
