@@ -19,6 +19,7 @@ function clear_sky = calcClearSky(date_time, lat, lon, rad)
 % 2016-02-24 Scott Havens
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+date_time = date_time - (1/24);
 len = length(date_time) * 2; % number of calculations
 cal = 0;
 wb = waitbar(cal/len, 'Calculating sun angle...');
