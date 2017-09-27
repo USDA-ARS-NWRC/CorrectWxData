@@ -9,9 +9,21 @@ results = 0;
 
 %%% connect to the database %%%
 config = handles.config;
-c = database(config.database.dbName, config.database.user, config.database.password,...
-    'Vendor',config.database.Vendor,...
-    'Server',config.database.Server);
+
+% Added if/else to use 'Port' from the config file...wasn't able to
+% successfully parse the subsequent Port string in a way that database()
+% could use, so it's just hard coded here. Yeah.
+if isfield(config.database,'Port')
+    c = database(config.database.dbName, config.database.user, config.database.password,...
+        'Vendor',config.database.Vendor,...
+        'PortNumber',32768,...
+        'Server',config.database.Server);
+else
+    c = database(config.database.dbName, config.database.user, config.database.password,...
+        'Vendor',config.database.Vendor,...
+        'Server',config.database.Server);
+end
+
 setdbprefs('DataReturnFormat','structure');
 if ~isempty(c.Message)
     errordlg(c.Message);

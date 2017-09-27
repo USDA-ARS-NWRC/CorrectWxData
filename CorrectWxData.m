@@ -24,6 +24,8 @@ function varargout = CorrectWxData(varargin)
 
 % Last Modified by GUIDE v2.5 20-Sep-2016 14:56:41
 
+% CorrectWxData('/home/markrobertson/mrworkspace/BRB/brb2017wxn.ini')
+
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -66,6 +68,8 @@ for n = 1:length(sections)
     
     [keys, count_keys] = ini.GetKeys(sections{n});
     values = ini.GetValues(sections{n}, keys);
+    % disp(n)
+    % disp(values)
     
     for k = 1:count_keys
         if ~isempty(values{k})

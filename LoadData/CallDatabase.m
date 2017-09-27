@@ -11,9 +11,26 @@ nround = 6; % ensure that the times are similar to the second, don't care after 
 
 %%% connect to the database %%%
 config = handles.config;
-c = database(config.database.dbName, config.database.user, config.database.password,...
-    'Vendor',config.database.Vendor,...
-    'Server',config.database.Server);
+
+% Added if/else to use 'Port' from the config file...wasn't able to
+% successfully parse the subsequent Port string in a way that database()
+% could use, so it's just hard coded here. Yeah.
+if isfield(config.database,'Port')
+    c = database(config.database.dbName, config.database.user, config.database.password,...
+        'Vendor',config.database.Vendor,...
+        'PortNumber',32768,...
+        'Server',config.database.Server);
+    
+    % Uhhhh...yeah....
+    % config.database.Port(1) = [];
+    % config.database.Port(end) = [];
+    % config.database.Port
+else
+    c = database(config.database.dbName, config.database.user, config.database.password,...
+        'Vendor',config.database.Vendor,...
+        'Server',config.database.Server);
+end
+%config.database
 
 setdbprefs('DataReturnFormat','structure');
 if ~isempty(c.Message)
@@ -77,10 +94,19 @@ else
     % get metadata for the desired area
     
     client = handles.config.stations.client;
+
+    % Use new query if we are specifying 'Port'...
+    if isfield(config.database,'Port')
+        % 9/25/2017 - email from Scott - for new database
+        qry = sprintf(['SELECT tbl_metadata.* FROM tbl_metadata INNER JOIN tbl_stations_view '...
+            'ON tbl_metadata.primary_id = tbl_stations_view.primary_id WHERE tbl_stations_view.client = ''%s'' ORDER BY tbl_metadata.primary_id'],...
+            client); 
+    else
+        qry = sprintf(['SELECT tbl_metadata.* FROM tbl_metadata INNER JOIN tbl_stations ON',...
+            ' tbl_metadata.primary_id=tbl_stations.station_id WHERE tbl_stations.client=''%s'' ORDER BY tbl_metadata.primary_id'],...
+            client);
+    end
     
-    qry = sprintf(['SELECT tbl_metadata.* FROM tbl_metadata INNER JOIN tbl_stations ON',...
-        ' tbl_metadata.primary_id=tbl_stations.station_id WHERE tbl_stations.client=''%s'' ORDER BY tbl_metadata.primary_id'],...
-        client);
     curs = exec(c,qry);
     curs = fetch(curs);
     metadata = organizeMetadata(curs.Data);
